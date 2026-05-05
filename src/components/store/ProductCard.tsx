@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { useCartStore } from "@/stores/useCartStore";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 
 // Type definition based on trpc output for IProduct
 export interface ProductCardProps {
@@ -30,12 +33,20 @@ export interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
   const { addItem } = useCartStore();
   const [isWishlisted, setIsWishlisted] = useState(false); // Default local state, actual feature requires auth
+  const { data: session } = useSession();
 
   const toggleWishlist = trpc.user?.toggleWishlist?.useMutation({
     onSuccess: () => setIsWishlisted(!isWishlisted)
+  });
+
+  const { mutate: addToBackendCart } = trpc.cart.addItem.useMutation({
+    onError: (err) => {
+      toast.error(err.message || "Không thể thêm vào giỏ hàng");
+    }
   });
 
   const handleWishlist = (e: React.MouseEvent) => {
@@ -49,9 +60,9 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   // Find total stock across all variants
-  const totalStock = product.variants?.reduce((sum, v) => 
+  const totalStock = product.variants?.reduce((sum, v) =>
     sum + v.sizes.reduce((s, size) => s + size.stock, 0), 0) || 0;
-  
+
   const isOutOfStock = totalStock <= 0;
   const isSale = !!product.salePrice && product.salePrice < product.price;
 
@@ -59,7 +70,7 @@ export function ProductCard({ product }: ProductCardProps) {
     e.preventDefault();
     e.stopPropagation();
     if (isOutOfStock) return;
-    
+
     // For products with variants, ideally we open a modal or navigate to detail page.
     // For now, if there's only 1 default size, we can add it directly. 
     // Otherwise we redirect to product options (detail page).
@@ -67,6 +78,8 @@ export function ProductCard({ product }: ProductCardProps) {
     if (allSizes.length === 1) {
       const v = product.variants[0];
       const s = v.sizes[0];
+      
+      // Optimistic local update
       addItem({
         product: product._id,
         name: product.name,
@@ -76,26 +89,41 @@ export function ProductCard({ product }: ProductCardProps) {
         size: s.size,
         quantity: 1
       });
+
+      // Sync to backend if logged in
+      if (session) {
+        addToBackendCart({
+          productId: product._id,
+          color: v.color,
+          size: s.size,
+          quantity: 1
+        });
+      }
+      
+      toast.success("Đã thêm vào giỏ hàng!");
     } else {
-      // Just visually triggering, actual app would open size selector
-      window.location.href = `/products/${product.slug}`;
+      // Use client-side routing instead of hard reload
+      toast.info("Vui lòng chọn màu sắc và kích thước");
+      router.push(`/products/${product.slug}`);
     }
   };
 
   const formattedPrice = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(product.price);
-  const formattedSalePrice = product.salePrice 
+  const formattedSalePrice = product.salePrice
     ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(product.salePrice)
     : null;
 
   return (
-    <Link href={`/products/${product.slug}`} className="group block h-full">
-      <div 
+    <div className="group block h-full relative">
+      <div
         className="relative flex flex-col h-full bg-white transition-all duration-300 hover:shadow-lg rounded-xl overflow-hidden border border-slate-100"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
+        <Link href={`/products/${product.slug}`} className="absolute inset-0 z-0" aria-label={`Xem ${product.name}`} />
+
         {/* Image Container */}
-        <div className="relative aspect-[3/4] w-full overflow-hidden bg-slate-100">
+        <div className="relative aspect-[3/4] w-full overflow-hidden bg-slate-100 pointer-events-none">
           <Image
             src={product.images[0] || "/placeholder.jpg"}
             alt={product.name}
@@ -117,7 +145,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
             {isSale && (
               <Badge variant="destructive" className="bg-red-600 text-white border-0 font-medium">
-                -{Math.round(((product.price - (product.salePrice||0)) / product.price) * 100)}%
+                -{Math.round(((product.price - (product.salePrice || 0)) / product.price) * 100)}%
               </Badge>
             )}
             {/* New badge could be added here based on createdAt */}
@@ -130,36 +158,33 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
           )}
 
-          {/* Action Buttons (Right Side) */}
-          <div className={`absolute top-3 right-3 flex flex-col gap-2 z-10 transition-all duration-300 ${isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 md:opacity-0'}`}>
-            <Button 
-              size="icon" 
-              variant="secondary" 
-              className={`rounded-full shadow-md bg-white hover:bg-slate-50 transition-colors ${isWishlisted ? 'text-red-500' : 'text-slate-600'}`}
-              onClick={handleWishlist}
-            >
-              <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
-            </Button>
-            <Button size="icon" variant="secondary" className="rounded-full shadow-md bg-white text-slate-600 hover:bg-slate-50 transition-colors hidden md:flex">
-              <Eye className="w-4 h-4" />
-            </Button>
-          </div>
-
           {/* Add to Cart Overlay Bottom */}
-          <div className={`absolute bottom-0 inset-x-0 p-3 z-10 bg-gradient-to-t from-black/50 to-transparent transition-all duration-300 ${isHovered ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 md:opacity-0 md:translate-y-4'}`}>
-             <Button 
-                onClick={handleAddToCart} 
-                disabled={isOutOfStock}
-                className="w-full bg-slate-900 text-white hover:bg-slate-800 shadow-lg rounded-full h-10 font-medium"
-              >
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                {isOutOfStock ? "Hết hàng" : "Thêm vào giỏ"}
-              </Button>
+          <div className={`absolute bottom-0 inset-x-0 p-3 z-20 bg-gradient-to-t from-black/50 to-transparent transition-all duration-300 ${isHovered ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 md:opacity-0 md:translate-y-4'}`}>
+            <Button
+              onClick={handleAddToCart}
+              disabled={isOutOfStock}
+              className="w-full bg-slate-900 text-white hover:bg-slate-800 shadow-lg rounded-full h-10 font-medium pointer-events-auto"
+            >
+              <ShoppingCart className="w-4 h-4 mr-2" />
+              {isOutOfStock ? "Hết hàng" : "Thêm vào giỏ"}
+            </Button>
           </div>
         </div>
 
+        {/* Action Buttons (Right Side) */}
+        <div className={`absolute top-3 right-3 flex flex-col gap-2 z-20 transition-all duration-300 ${isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 md:opacity-0'}`}>
+          <Button
+            size="icon"
+            variant="secondary"
+            className={`rounded-full shadow-md bg-white hover:bg-slate-50 transition-colors ${isWishlisted ? 'text-red-500' : 'text-slate-600'}`}
+            onClick={handleWishlist}
+          >
+            <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
+          </Button>
+        </div>
+
         {/* Product Info */}
-        <div className="p-4 flex flex-col flex-1">
+        <div className="p-4 flex flex-col flex-1 relative z-10 pointer-events-none">
           <div className="flex items-center gap-1 mb-1.5">
             <div className="flex text-yellow-400">
               <Star className="w-3.5 h-3.5 fill-current" />
@@ -167,11 +192,11 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
             <span className="text-xs text-slate-400">({product.reviewCount})</span>
           </div>
-          
+
           <h3 className="font-medium text-slate-900 line-clamp-2 leading-snug mb-2 flex-1">
             {product.name}
           </h3>
-          
+
           <div className="flex items-center gap-2 mt-auto">
             {isSale ? (
               <>
@@ -184,6 +209,6 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }

@@ -13,12 +13,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
 const localAddressSchema = z.object({
-  fullName: z.string().min(2, 'Name must be at least 2 characters'),
-  phone: z.string().min(9, 'Phone must be at least 9 digits'),
-  province: z.string().min(1, 'Please select a province'),
-  district: z.string().min(1, 'Please select a district'),
-  ward: z.string().min(1, 'Please select a ward'),
-  street: z.string().min(1, 'Please enter street address'),
+  fullName: z.string().min(2, 'Tên phải có ít nhất 2 ký tự'),
+  phone: z.string().min(9, 'Số điện thoại phải có ít nhất 9 chữ số'),
+  province: z.string().min(1, 'Vui lòng chọn Tỉnh/Thành phố'),
+  district: z.string().min(1, 'Vui lòng chọn Quận/Huyện'),
+  ward: z.string().min(1, 'Vui lòng chọn Phường/Xã'),
+  street: z.string().min(1, 'Vui lòng nhập địa chỉ đường'),
   isDefault: z.boolean()
 });
 
@@ -63,13 +63,13 @@ export default function AddressForm({ onSuccess }: { onSuccess?: () => void }) {
   const onSubmit = (values: AddressFormValues) => {
     addAddressMutation.mutate(values, {
       onSuccess: () => {
-        toast.success("Address added successfully!");
+        toast.success("Đã thêm địa chỉ thành công!");
         utils.user.getProfile.invalidate();
         form.reset();
         if (onSuccess) onSuccess();
       },
       onError: (err) => {
-        toast.error(err.message || 'Failed to add address');
+        toast.error(err.message || 'Thêm địa chỉ thất bại');
       }
     });
   };
@@ -86,9 +86,9 @@ export default function AddressForm({ onSuccess }: { onSuccess?: () => void }) {
               name="fullName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full Name</FormLabel>
+                  <FormLabel>Họ và tên</FormLabel>
                   <FormControl>
-                    <Input placeholder="John Doe" {...field} disabled={isSubmitting} />
+                    <Input placeholder="Nguyễn Văn A" {...field} disabled={isSubmitting} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -99,7 +99,7 @@ export default function AddressForm({ onSuccess }: { onSuccess?: () => void }) {
               name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Phone Number</FormLabel>
+                  <FormLabel>Số điện thoại</FormLabel>
                   <FormControl>
                     <Input placeholder="0901234567" {...field} disabled={isSubmitting} />
                   </FormControl>
@@ -114,7 +114,7 @@ export default function AddressForm({ onSuccess }: { onSuccess?: () => void }) {
             name="province"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Province / City</FormLabel>
+                <FormLabel>Tỉnh / Thành phố</FormLabel>
                 <Select disabled={isSubmitting} onValueChange={(val) => {
                     field.onChange(val);
                     form.setValue('district', '');
@@ -122,7 +122,7 @@ export default function AddressForm({ onSuccess }: { onSuccess?: () => void }) {
                   }} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select province" />
+                      <SelectValue placeholder="Chọn Tỉnh / Thành phố" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -142,14 +142,14 @@ export default function AddressForm({ onSuccess }: { onSuccess?: () => void }) {
               name="district"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>District</FormLabel>
+                  <FormLabel>Quận / Huyện</FormLabel>
                   <Select disabled={isSubmitting || !selectedProvinceName} onValueChange={(val) => {
                     field.onChange(val);
                     form.setValue('ward', '');
                   }} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select district" />
+                        <SelectValue placeholder="Chọn Quận / Huyện" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -168,11 +168,11 @@ export default function AddressForm({ onSuccess }: { onSuccess?: () => void }) {
               name="ward"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Ward</FormLabel>
+                  <FormLabel>Phường / Xã</FormLabel>
                   <Select disabled={isSubmitting || !selectedDistrictName} onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select ward" />
+                        <SelectValue placeholder="Chọn Phường / Xã" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -192,9 +192,9 @@ export default function AddressForm({ onSuccess }: { onSuccess?: () => void }) {
             name="street"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Street Address</FormLabel>
+                <FormLabel>Địa chỉ đường</FormLabel>
                 <FormControl>
-                  <Input placeholder="House number, street name" {...field} disabled={isSubmitting} />
+                  <Input placeholder="Số nhà, tên đường" {...field} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -210,14 +210,14 @@ export default function AddressForm({ onSuccess }: { onSuccess?: () => void }) {
                   <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isSubmitting} />
                 </FormControl>
                 <div className="space-y-1 leading-none">
-                  <FormLabel>Set as default address</FormLabel>
+                  <FormLabel>Đặt làm địa chỉ mặc định</FormLabel>
                 </div>
               </FormItem>
             )}
           />
 
           <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
-            {isSubmitting ? 'Saving...' : 'Save Address'}
+            {isSubmitting ? 'Đang lưu...' : 'Lưu Địa Chỉ'}
           </Button>
         </form>
       </Form>

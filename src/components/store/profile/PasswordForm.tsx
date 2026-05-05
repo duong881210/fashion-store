@@ -9,12 +9,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { toast } from 'sonner';
 
 const localChangePasswordSchema = z.object({
-  currentPassword: z.string().min(1, 'Current password is required'),
-  newPassword: z.string().min(8, 'Password must be at least 8 characters')
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain uppercase, lowercase and number'),
+  currentPassword: z.string().min(1, 'Mật khẩu hiện tại là bắt buộc'),
+  newPassword: z.string().min(8, 'Mật khẩu phải có ít nhất 8 ký tự')
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Mật khẩu phải chứa chữ hoa, chữ thường và số'),
   confirmPassword: z.string()
 }).refine(data => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: "Mật khẩu không khớp",
   path: ["confirmPassword"]
 });
 
@@ -35,11 +35,11 @@ export default function PasswordForm() {
   const onSubmit = (values: PasswordFormValues) => {
     changePasswordMutation.mutate(values, {
       onSuccess: () => {
-        toast.success("Password changed successfully!");
+        toast.success("Đổi mật khẩu thành công!");
         form.reset();
       },
       onError: (err) => {
-        toast.error(err.message || "Failed to change password. You may be using OAuth.");
+        toast.error(err.message || "Đổi mật khẩu thất bại. Bạn có thể đang đăng nhập bằng Google.");
       }
     });
   };
@@ -49,8 +49,8 @@ export default function PasswordForm() {
   return (
     <div className="space-y-6 max-w-xl">
       <div>
-        <h3 className="text-xl font-semibold mb-2">Change Password</h3>
-        <p className="text-gray-500 text-sm mb-6">Ensure your account is using a long, random password to stay secure.</p>
+        <h3 className="text-xl font-semibold mb-2">Đổi Mật Khẩu</h3>
+        <p className="text-gray-500 text-sm mb-6">Đảm bảo tài khoản của bạn đang sử dụng một mật khẩu dài, ngẫu nhiên để giữ an toàn.</p>
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -59,7 +59,7 @@ export default function PasswordForm() {
             name="currentPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Current Password</FormLabel>
+                <FormLabel>Mật khẩu hiện tại</FormLabel>
                 <FormControl>
                   <Input type="password" placeholder="••••••••" {...field} disabled={isSubmitting} />
                 </FormControl>
@@ -73,7 +73,7 @@ export default function PasswordForm() {
             name="newPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>New Password</FormLabel>
+                <FormLabel>Mật khẩu mới</FormLabel>
                 <FormControl>
                   <Input type="password" placeholder="••••••••" {...field} disabled={isSubmitting} />
                 </FormControl>
@@ -87,7 +87,7 @@ export default function PasswordForm() {
             name="confirmPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Confirm New Password</FormLabel>
+                <FormLabel>Xác nhận mật khẩu mới</FormLabel>
                 <FormControl>
                   <Input type="password" placeholder="••••••••" {...field} disabled={isSubmitting} />
                 </FormControl>
@@ -97,7 +97,7 @@ export default function PasswordForm() {
           />
 
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Updating...' : 'Update Password'}
+            {isSubmitting ? 'Đang cập nhật...' : 'Cập Nhật Mật Khẩu'}
           </Button>
         </form>
       </Form>

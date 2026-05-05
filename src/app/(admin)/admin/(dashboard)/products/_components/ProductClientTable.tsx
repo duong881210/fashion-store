@@ -34,22 +34,20 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Update URL on filter changes
+  // Update URL on search change
   useEffect(() => {
-    const params = new URLSearchParams(Array.from(searchParams.entries()));
-    if (debouncedSearch) params.set('search', debouncedSearch);
-    else params.delete('search');
-
-    if (categoryFilter !== 'all') params.set('category', categoryFilter);
-    else params.delete('category');
-
-    if (statusFilter !== 'all') params.set('status', statusFilter);
-    else params.delete('status');
-
-    if (page !== 1) params.set('page', page.toString());
-
-    router.push(`${pathname}?${params.toString()}`);
-  }, [debouncedSearch, categoryFilter, statusFilter, page, pathname, router, searchParams]);
+    const currentSearch = searchParams.get('search') || '';
+    if (debouncedSearch !== currentSearch) {
+      const params = new URLSearchParams(searchParams.toString());
+      if (debouncedSearch) params.set('search', debouncedSearch);
+      else params.delete('search');
+      
+      // Reset page when search changes
+      params.delete('page');
+      
+      router.push(`${pathname}?${params.toString()}`);
+    }
+  }, [debouncedSearch, pathname, router, searchParams]);
 
   const { data, refetch } = trpc.product.getAdminList.useQuery(
     { page, limit: 10, search: debouncedSearch, category: categoryFilter, status: statusFilter as any },
@@ -58,7 +56,7 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
 
   const bulkMutation = trpc.product.bulkAction.useMutation({
     onSuccess: () => {
-      toast.success('Bulk action completed');
+      toast.success('Thao tác hàng loạt hoàn tất');
       setSelectedIds([]);
       refetch();
     }
@@ -66,7 +64,7 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
 
   const handleBulkAction = (action: 'publish' | 'unpublish' | 'delete') => {
     if (!selectedIds.length) return;
-    if (action === 'delete' && !confirm('Are you sure you want to delete these products?')) return;
+    if (action === 'delete' && !confirm('Bạn có chắc chắn muốn xóa các sản phẩm này?')) return;
     bulkMutation.mutate({ ids: selectedIds, action });
   };
 
@@ -87,7 +85,7 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
           <div className="relative w-full max-w-sm">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search products..."
+              placeholder="Tìm kiếm sản phẩm..."
               className="pl-8"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -101,10 +99,10 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
              router.push(`${pathname}?${params.toString()}`);
           }}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Category" />
+              <SelectValue placeholder="Danh mục" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="all">Tất cả danh mục</SelectItem>
               {categories.map(c => (
                 <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
               ))}
@@ -118,19 +116,19 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
              router.push(`${pathname}?${params.toString()}`);
           }}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder="Trạng thái" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="published">Published</SelectItem>
-              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="all">Tất cả trạng thái</SelectItem>
+              <SelectItem value="published">Đã xuất bản</SelectItem>
+              <SelectItem value="draft">Nháp</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <Link href="/admin/products/new">
           <Button className="flex gap-2">
-            <Plus className="h-4 w-4" /> Add Product
+            <Plus className="h-4 w-4" /> Thêm sản phẩm
           </Button>
         </Link>
       </div>
@@ -138,12 +136,12 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
       {/* Bulk Actions */}
       {selectedIds.length > 0 && (
         <div className="bg-muted px-4 py-2 rounded-md flex items-center justify-between">
-          <span className="text-sm font-medium">{selectedIds.length} selected</span>
+          <span className="text-sm font-medium">{selectedIds.length} đã chọn</span>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => handleBulkAction('publish')}>Publish</Button>
-            <Button size="sm" variant="outline" onClick={() => handleBulkAction('unpublish')}>Unpublish</Button>
+            <Button size="sm" variant="outline" onClick={() => handleBulkAction('publish')}>Xuất bản</Button>
+            <Button size="sm" variant="outline" onClick={() => handleBulkAction('unpublish')}>Hủy xuất bản</Button>
             <Button size="sm" variant="destructive" onClick={() => handleBulkAction('delete')}>
-              <Trash2 className="h-4 w-4 mr-2" /> Delete
+              <Trash2 className="h-4 w-4 mr-2" /> Xóa
             </Button>
           </div>
         </div>
@@ -160,11 +158,11 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
                   onCheckedChange={toggleAll}
                 />
               </TableHead>
-              <TableHead>Product</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Stock</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Sản phẩm</TableHead>
+              <TableHead>Danh mục</TableHead>
+              <TableHead>Giá</TableHead>
+              <TableHead>Tồn kho</TableHead>
+              <TableHead>Trạng thái</TableHead>
               <TableHead className="w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -206,7 +204,7 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
                 </TableCell>
                 <TableCell>
                   <Badge variant={product.isPublished ? 'default' : 'secondary'}>
-                    {product.isPublished ? 'Published' : 'Draft'}
+                    {product.isPublished ? 'Đã xuất bản' : 'Nháp'}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -217,16 +215,16 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       <Link href={`/admin/products/${product._id}/edit`}>
                         <DropdownMenuItem className="cursor-pointer">
-                          <Edit className="mr-2 h-4 w-4" /> Edit
+                          <Edit className="mr-2 h-4 w-4" /> Chỉnh sửa
                         </DropdownMenuItem>
                       </Link>
                       <Link href={`/products/${product.slug}`} target="_blank">
                         <DropdownMenuItem className="cursor-pointer">
-                          <Eye className="mr-2 h-4 w-4" /> View Storefront
+                          <Eye className="mr-2 h-4 w-4" /> Xem trên cửa hàng
                         </DropdownMenuItem>
                       </Link>
                     </DropdownMenuContent>
@@ -237,7 +235,7 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
             {data.products.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
-                  No products found.
+                  Không tìm thấy sản phẩm nào.
                 </TableCell>
               </TableRow>
             )}
@@ -248,7 +246,7 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Showing page {data.page} of {Math.max(1, data.totalPages)}
+          Hiển thị trang {data.page} trên {Math.max(1, data.totalPages)}
         </p>
         <div className="flex gap-2">
           <Button 
@@ -261,7 +259,7 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
               router.push(`${pathname}?${params.toString()}`);
             }}
           >
-            Previous
+            Trước
           </Button>
           <Button 
             variant="outline" 
@@ -273,7 +271,7 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
               router.push(`${pathname}?${params.toString()}`);
             }}
           >
-            Next
+            Sau
           </Button>
         </div>
       </div>

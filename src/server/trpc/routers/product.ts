@@ -63,11 +63,7 @@ export const productRouter = router({
       ]);
 
       return {
-        products: products.map(p => ({ 
-          ...p, 
-          _id: p._id?.toString(), 
-          category: p.category ? { ...(p.category as any), _id: (p.category as any)._id?.toString() } : p.category 
-        })),
+        products: JSON.parse(JSON.stringify(products)),
         totalCount,
         totalPages: Math.ceil(totalCount / limit),
         currentPage: page
@@ -84,11 +80,7 @@ export const productRouter = router({
 
       if (!product) throw new TRPCError({ code: 'NOT_FOUND', message: 'Product not found' });
       
-      return { 
-        ...product, 
-        _id: product._id?.toString(),
-        category: product.category ? { ...(product.category as any), _id: (product.category as any)._id?.toString() } : product.category 
-      };
+      return JSON.parse(JSON.stringify(product));
     }),
 
   getFeatured: publicProcedure
@@ -99,7 +91,7 @@ export const productRouter = router({
         .limit(input.limit)
         .populate('category', 'name slug')
         .lean<IProduct[]>();
-      return products.map(p => ({ ...p, _id: p._id?.toString() }));
+      return JSON.parse(JSON.stringify(products));
     }),
 
   getNewArrivals: publicProcedure
@@ -111,7 +103,7 @@ export const productRouter = router({
         .limit(input.limit)
         .populate('category', 'name slug')
         .lean<IProduct[]>();
-      return products.map(p => ({ ...p, _id: p._id?.toString() }));
+      return JSON.parse(JSON.stringify(products));
     }),
 
   getBestSellers: publicProcedure
@@ -123,7 +115,7 @@ export const productRouter = router({
         .limit(input.limit)
         .populate('category', 'name slug')
         .lean<IProduct[]>();
-      return products.map(p => ({ ...p, _id: p._id?.toString() }));
+      return JSON.parse(JSON.stringify(products));
     }),
 
   search: publicProcedure
@@ -139,7 +131,7 @@ export const productRouter = router({
         .select('name slug price images')
         .lean<IProduct[]>();
       
-      return products.map(p => ({ ...p, _id: p._id?.toString() }));
+      return JSON.parse(JSON.stringify(products));
     }),
 
   create: adminProcedure
@@ -222,7 +214,22 @@ export const productRouter = router({
       } else if (input.action === 'unpublish') {
         await Product.updateMany({ _id: { $in: input.ids } }, { $set: { isPublished: false } });
       } else if (input.action === 'delete') {
-         await Product.updateMany({ _id: { $in: input.ids } }, { $set: { isPublished: false, deletedAt: new Date() } });
+         const products = await Product.find({ _id: { $in: input.ids } });
+         for (const p of products) {
+           if (p.images && p.images.length > 0) {
+             for (const imgUrl of p.images) {
+               try {
+                 const parts = imgUrl.split('/');
+                 const filename = parts[parts.length - 1];
+                 const publicId = filename.split('.')[0];
+                 await cloudinary.uploader.destroy(publicId);
+               } catch (e) {
+                 console.error('Failed to delete from Cloudinary:', e);
+               }
+             }
+           }
+         }
+         await Product.deleteMany({ _id: { $in: input.ids } });
       }
       return true;
     }),
@@ -261,11 +268,7 @@ export const productRouter = router({
       ]);
 
       return {
-        products: products.map(p => ({ 
-          ...p, 
-          _id: p._id?.toString(),
-          category: p.category ? { ...(p.category as any), _id: (p.category as any)._id?.toString() } : p.category
-        })),
+        products: JSON.parse(JSON.stringify(products)),
         total,
         page,
         totalPages: Math.ceil(total / limit)

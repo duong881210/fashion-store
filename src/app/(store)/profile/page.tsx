@@ -12,9 +12,9 @@ export default async function ProfilePage() {
     <div className="min-h-screen bg-gray-50 py-10 px-4 md:px-8">
       <div className="container mx-auto max-w-5xl space-y-6">
         <div>
-          <h3 className="text-3xl font-bold tracking-tight text-gray-900">Profile Settings</h3>
+          <h3 className="text-3xl font-bold tracking-tight text-gray-900">Cài đặt hồ sơ</h3>
           <p className="text-muted-foreground mt-2">
-            Manage your account settings, addresses, and wishlist.
+            Quản lý cài đặt tài khoản, địa chỉ và danh sách yêu thích của bạn.
           </p>
         </div>
         <ProfileTabs user={session.user} />

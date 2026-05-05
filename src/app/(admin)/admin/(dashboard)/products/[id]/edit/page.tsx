@@ -7,7 +7,7 @@ import connectDB from '@/server/db';
 import { Product } from '@/server/db/models/Product';
 
 export const metadata: Metadata = {
-  title: 'Admin - Edit Product',
+  title: 'Quản Trị - Chỉnh Sửa Sản Phẩm',
 };
 
 export default async function EditProductPage(props: { params: Promise<{ id: string }> }) {
@@ -29,7 +29,7 @@ export default async function EditProductPage(props: { params: Promise<{ id: str
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Edit Product</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Chỉnh Sửa Sản Phẩm</h1>
       </div>
       <ProductForm initialData={initialData} categories={categories as any} />
     </div>

@@ -4,6 +4,7 @@ import './globals.css';
 import TRPCProvider from '@/components/providers/TRPCProvider';
 import { SessionProvider } from 'next-auth/react';
 import { Toaster } from 'sonner';
+import { auth } from '@/auth';
 
 const playfairDisplay = Playfair_Display({
   subsets: ['latin'],
@@ -20,15 +21,17 @@ export const metadata: Metadata = {
   description: 'Your one-stop shop for the latest fashion trends.',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+  
   return (
     <html lang="en" className={`${playfairDisplay.variable} ${dmSans.variable}`}>
       <body>
-        <SessionProvider>
+        <SessionProvider session={session}>
           <TRPCProvider>
             {children}
             <Toaster />

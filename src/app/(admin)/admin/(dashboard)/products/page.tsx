@@ -4,7 +4,7 @@ import { createTRPCContext } from '@/server/trpc/context';
 import { ProductClientTable } from './_components/ProductClientTable';
 
 export const metadata: Metadata = {
-  title: 'Admin - Products',
+  title: 'Quản Trị - Sản Phẩm',
 };
 
 export default async function AdminProductsPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
@@ -29,7 +29,7 @@ export default async function AdminProductsPage(props: { searchParams: Promise<{
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Products Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Bảng Điều Khiển Sản Phẩm</h1>
       </div>
       <ProductClientTable 
         initialData={initialData as any} 

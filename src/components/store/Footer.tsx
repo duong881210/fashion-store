@@ -10,7 +10,7 @@ export default function Footer() {
         <div className="space-y-4">
           <h2 className="font-display flex text-2xl font-bold tracking-tight">Fashion Store</h2>
           <p className="text-sm text-foreground/70 max-w-xs">
-            Elevating your style with our curated collections of premium fashion and accessories.
+            Nâng tầm phong cách của bạn với bộ sưu tập thời trang và phụ kiện cao cấp của chúng tôi.
           </p>
           <div className="flex space-x-4">
             <Link href="#" className="text-foreground/70 hover:text-primary transition-colors">
@@ -27,41 +27,41 @@ export default function Footer() {
 
         {/* Shop */}
         <div>
-          <h3 className="font-semibold text-lg mb-4">Shop</h3>
+          <h3 className="font-semibold text-lg mb-4">Cửa Hàng</h3>
           <ul className="space-y-2 text-sm text-foreground/70">
-            <li><Link href="/collections/new" className="hover:text-primary transition-colors">New Arrivals</Link></li>
-            <li><Link href="/collections/women" className="hover:text-primary transition-colors">Women</Link></li>
-            <li><Link href="/collections/men" className="hover:text-primary transition-colors">Men</Link></li>
-            <li><Link href="/collections/accessories" className="hover:text-primary transition-colors">Accessories</Link></li>
-            <li><Link href="/sale" className="hover:text-primary transition-colors">Sale</Link></li>
+            <li><Link href="/collections/new" className="hover:text-primary transition-colors">Hàng Mới Về</Link></li>
+            <li><Link href="/collections/women" className="hover:text-primary transition-colors">Nữ</Link></li>
+            <li><Link href="/collections/men" className="hover:text-primary transition-colors">Nam</Link></li>
+            <li><Link href="/collections/accessories" className="hover:text-primary transition-colors">Phụ Kiện</Link></li>
+            <li><Link href="/sale" className="hover:text-primary transition-colors">Khuyến Mãi</Link></li>
           </ul>
         </div>
 
         {/* Help */}
         <div>
-          <h3 className="font-semibold text-lg mb-4">Help</h3>
+          <h3 className="font-semibold text-lg mb-4">Trợ Giúp</h3>
           <ul className="space-y-2 text-sm text-foreground/70">
-            <li><Link href="/contact" className="hover:text-primary transition-colors">Contact Us</Link></li>
-            <li><Link href="/faq" className="hover:text-primary transition-colors">FAQ</Link></li>
-            <li><Link href="/shipping" className="hover:text-primary transition-colors">Shipping & Returns</Link></li>
-            <li><Link href="/track-order" className="hover:text-primary transition-colors">Track Order</Link></li>
+            <li><Link href="/contact" className="hover:text-primary transition-colors">Liên Hệ</Link></li>
+            <li><Link href="/faq" className="hover:text-primary transition-colors">Câu Hỏi Thường Gặp</Link></li>
+            <li><Link href="/shipping" className="hover:text-primary transition-colors">Giao Hàng & Đổi Trả</Link></li>
+            <li><Link href="/track-order" className="hover:text-primary transition-colors">Theo Dõi Đơn Hàng</Link></li>
           </ul>
         </div>
 
         {/* Company */}
         <div>
-          <h3 className="font-semibold text-lg mb-4">Company</h3>
+          <h3 className="font-semibold text-lg mb-4">Công Ty</h3>
           <ul className="space-y-2 text-sm text-foreground/70">
-            <li><Link href="/about" className="hover:text-primary transition-colors">About Us</Link></li>
-            <li><Link href="/careers" className="hover:text-primary transition-colors">Careers</Link></li>
-            <li><Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
-            <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
+            <li><Link href="/about" className="hover:text-primary transition-colors">Về Chúng Tôi</Link></li>
+            <li><Link href="/careers" className="hover:text-primary transition-colors">Tuyển Dụng</Link></li>
+            <li><Link href="/terms" className="hover:text-primary transition-colors">Điều Khoản Dịch Vụ</Link></li>
+            <li><Link href="/privacy" className="hover:text-primary transition-colors">Chính Sách Bảo Mật</Link></li>
           </ul>
         </div>
       </div>
 
       <div className="container mx-auto px-4 mt-12 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center text-sm text-foreground/60">
-        <p>&copy; {new Date().getFullYear()} Fashion Store. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} Fashion Store. Đã bảo lưu mọi quyền.</p>
         <div className="flex items-center space-x-4 mt-4 md:mt-0">
           <CreditCard className="h-6 w-6" />
           {/* Add more payment badges here if needed */}

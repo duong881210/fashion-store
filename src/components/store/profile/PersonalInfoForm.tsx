@@ -9,9 +9,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { toast } from 'sonner';
 
 const localUpdateProfileSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').max(50),
+  name: z.string().min(2, 'Tên phải có ít nhất 2 ký tự').max(50),
   phone: z.string().optional(),
-  avatar: z.string().url('Must be a valid URL').optional().or(z.literal(''))
+  avatar: z.string().url('Phải là một URL hợp lệ').optional().or(z.literal(''))
 });
 
 type ProfileFormValues = z.infer<typeof localUpdateProfileSchema>;
@@ -32,11 +32,11 @@ export default function PersonalInfoForm({ profile }: { profile: any }) {
   const onSubmit = (values: ProfileFormValues) => {
     updateMutation.mutate(values, {
       onSuccess: () => {
-        toast.success("Profile updated successfully!");
+        toast.success("Cập nhật hồ sơ thành công!");
         utils.user.getProfile.invalidate();
       },
       onError: (err) => {
-        toast.error(err.message || "Failed to update profile");
+        toast.error(err.message || "Cập nhật hồ sơ thất bại");
       }
     });
   };
@@ -46,8 +46,8 @@ export default function PersonalInfoForm({ profile }: { profile: any }) {
   return (
     <div className="space-y-6 max-w-xl">
       <div>
-        <h3 className="text-xl font-semibold mb-2">Personal Information</h3>
-        <p className="text-gray-500 text-sm mb-6">Update your personal details here.</p>
+        <h3 className="text-xl font-semibold mb-2">Thông Tin Cá Nhân</h3>
+        <p className="text-gray-500 text-sm mb-6">Cập nhật thông tin cá nhân của bạn tại đây.</p>
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -56,9 +56,9 @@ export default function PersonalInfoForm({ profile }: { profile: any }) {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Full Name</FormLabel>
+                <FormLabel>Họ và tên</FormLabel>
                 <FormControl>
-                  <Input placeholder="Your Name" {...field} disabled={isSubmitting} />
+                  <Input placeholder="Tên của bạn" {...field} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -70,9 +70,9 @@ export default function PersonalInfoForm({ profile }: { profile: any }) {
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Phone Number</FormLabel>
+                <FormLabel>Số điện thoại</FormLabel>
                 <FormControl>
-                  <Input placeholder="Your Phone Number" {...field} disabled={isSubmitting} />
+                  <Input placeholder="Số điện thoại của bạn" {...field} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -84,7 +84,7 @@ export default function PersonalInfoForm({ profile }: { profile: any }) {
             name="avatar"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Avatar URL</FormLabel>
+                <FormLabel>Đường dẫn ảnh đại diện</FormLabel>
                 <FormControl>
                   <Input placeholder="https://example.com/avatar.jpg" {...field} disabled={isSubmitting} />
                 </FormControl>
@@ -94,7 +94,7 @@ export default function PersonalInfoForm({ profile }: { profile: any }) {
           />
 
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : 'Save Changes'}
+            {isSubmitting ? 'Đang lưu...' : 'Lưu Thay Đổi'}
           </Button>
         </form>
       </Form>

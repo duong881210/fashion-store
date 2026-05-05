@@ -15,14 +15,14 @@ export default function AddressesTab({ profile }: { profile: any }) {
   const addresses = profile?.addresses || [];
 
   const handleDelete = (addressId: string) => {
-    if (!confirm('Are you sure you want to delete this address?')) return;
+    if (!confirm('Bạn có chắc chắn muốn xóa địa chỉ này?')) return;
     deleteMutation.mutate({ addressId }, {
       onSuccess: () => {
         utils.user.getProfile.invalidate();
-        toast.success("Address deleted");
+        toast.success("Đã xóa địa chỉ");
       },
       onError: (err) => {
-        toast.error(err.message || "Failed to delete address");
+        toast.error(err.message || "Xóa địa chỉ thất bại");
       }
     });
   };
@@ -40,10 +40,10 @@ export default function AddressesTab({ profile }: { profile: any }) {
     }, {
       onSuccess: () => {
         utils.user.getProfile.invalidate();
-        toast.success("Default address updated");
+        toast.success("Đã cập nhật địa chỉ mặc định");
       },
       onError: (err) => {
-        toast.error(err.message || "Failed to update default address");
+        toast.error(err.message || "Cập nhật địa chỉ mặc định thất bại");
       }
     });
   };
@@ -53,10 +53,10 @@ export default function AddressesTab({ profile }: { profile: any }) {
       <div className="space-y-6">
         <div className="flex items-center justify-between border-b pb-4">
           <div>
-            <h3 className="text-xl font-semibold">Add New Address</h3>
-            <p className="text-sm text-gray-500 mt-1">Fill in the details for your new delivery location.</p>
+            <h3 className="text-xl font-semibold">Thêm Địa Chỉ Mới</h3>
+            <p className="text-sm text-gray-500 mt-1">Điền chi tiết cho vị trí giao hàng mới của bạn.</p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
+          <Button variant="outline" size="sm" onClick={() => setShowForm(false)}>Hủy</Button>
         </div>
         <AddressForm onSuccess={() => setShowForm(false)} />
       </div>
@@ -67,18 +67,18 @@ export default function AddressesTab({ profile }: { profile: any }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-xl font-semibold mb-1">Shipping Addresses</h3>
-          <p className="text-gray-500 text-sm">Manage your delivery locations.</p>
+          <h3 className="text-xl font-semibold mb-1">Địa Chỉ Giao Hàng</h3>
+          <p className="text-gray-500 text-sm">Quản lý vị trí giao hàng của bạn.</p>
         </div>
         <Button onClick={() => setShowForm(true)} size="sm">
-          <Plus className="h-4 w-4 mr-2" /> Add Address
+          <Plus className="h-4 w-4 mr-2" /> Thêm Địa Chỉ
         </Button>
       </div>
 
       {addresses.length === 0 ? (
         <div className="text-center py-10 border-2 border-dashed rounded-xl bg-gray-50">
           <MapPin className="mx-auto h-8 w-8 text-gray-400 mb-3" />
-          <p className="text-gray-500">You haven't added any addresses yet.</p>
+          <p className="text-gray-500">Bạn chưa thêm địa chỉ nào.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -89,7 +89,7 @@ export default function AddressesTab({ profile }: { profile: any }) {
                   <h4 className="font-semibold text-gray-900">{address.fullName}</h4>
                   {address.isDefault && (
                     <span className="bg-black text-white text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full flex items-center">
-                      <Star className="h-3 w-3 mr-1 fill-white" /> Default
+                      <Star className="h-3 w-3 mr-1 fill-white" /> Mặc định
                     </span>
                   )}
                 </div>
@@ -102,11 +102,11 @@ export default function AddressesTab({ profile }: { profile: any }) {
               </div>
               <div className="flex gap-3 pt-4 border-t border-gray-100">
                 <Button variant="outline" size="sm" className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 border-gray-200" onClick={() => handleDelete(address._id)}>
-                  <Trash2 className="h-4 w-4 mr-2" /> Delete
+                  <Trash2 className="h-4 w-4 mr-2" /> Xóa
                 </Button>
                 {!address.isDefault && (
                   <Button variant="secondary" size="sm" className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-900" onClick={() => handleSetDefault(address)}>
-                    Set Default
+                    Đặt Mặc Định
                   </Button>
                 )}
               </div>

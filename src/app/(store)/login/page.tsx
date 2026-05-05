@@ -16,8 +16,8 @@ export default function LoginPage() {
         />
         <div className="absolute inset-0 bg-black/20" />
         <div className="absolute bottom-10 left-10 right-10 text-white">
-          <h2 className="text-4xl font-bold mb-4">Elevate Your Style</h2>
-          <p className="text-lg text-white/90">Discover the latest trends and exclusive collections curated just for you.</p>
+          <h2 className="text-4xl font-bold mb-4">Nâng Tầm Phong Cách Của Bạn</h2>
+          <p className="text-lg text-white/90">Khám phá các xu hướng mới nhất và bộ sưu tập độc quyền được chọn lọc dành riêng cho bạn.</p>
         </div>
       </div>
 

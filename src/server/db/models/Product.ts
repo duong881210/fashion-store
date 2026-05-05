@@ -100,7 +100,6 @@ ProductSchema.pre('save', async function() {
   }
 });
 
-ProductSchema.index({ slug: 1 }, { unique: true });
 ProductSchema.index({ category: 1 });
 ProductSchema.index({ isPublished: 1, isFeatured: 1 });
 ProductSchema.index({ price: 1 });

@@ -5,8 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Star, Minus, Plus, Ruler, Heart, ShieldCheck, Truck, Check } from "lucide-react";
 import { useCartStore } from "@/stores/useCartStore";
+import { useUIStore } from "@/stores/useUIStore";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
+import { useSession } from "next-auth/react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 // Represents the data structure passed down from the product query
 interface ProductInfoProps {
@@ -31,6 +35,14 @@ interface ProductInfoProps {
 export function ProductInfo({ product }: ProductInfoProps) {
   const router = useRouter();
   const { addItem } = useCartStore();
+  const { openCartSidebar } = useUIStore();
+
+  const { data: session } = useSession();
+  const { mutate: addToBackendCart } = trpc.cart.addItem.useMutation({
+    onError: (err) => {
+      toast.error(err.message || "Không thể thêm vào giỏ hàng");
+    }
+  });
 
   // Selected state
   const [selectedColor, setSelectedColor] = useState(product.variants?.[0]?.color || '');
@@ -52,7 +64,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
 
   const handleAddToCart = () => {
     if (!selectedSize) {
-      alert("Vui lòng chọn kích thước");
+      toast.error("Vui lòng chọn kích thước");
       return;
     }
     if (isOutOfStock) return;
@@ -66,6 +78,17 @@ export function ProductInfo({ product }: ProductInfoProps) {
       size: selectedSize,
       quantity
     });
+
+    if (session) {
+      addToBackendCart({
+        productId: product._id,
+        color: selectedColor,
+        size: selectedSize,
+        quantity
+      });
+    }
+
+    openCartSidebar();
   };
 
   const handleBuyNow = () => {

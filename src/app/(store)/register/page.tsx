@@ -15,8 +15,8 @@ export default function RegisterPage() {
         />
         <div className="absolute inset-0 bg-black/20" />
         <div className="absolute top-10 left-10 text-white">
-          <h2 className="text-4xl font-bold">Join the Club</h2>
-          <p className="mt-2 text-lg text-white/90">Unlock exclusive offers and early access to new collections.</p>
+          <h2 className="text-4xl font-bold">Tham Gia Cùng Chúng Tôi</h2>
+          <p className="mt-2 text-lg text-white/90">Mở khóa các ưu đãi độc quyền và cập nhật sớm các bộ sưu tập mới.</p>
         </div>
       </div>
 

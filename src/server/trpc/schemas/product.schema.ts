@@ -22,7 +22,7 @@ export const productVariantSchema = z.object({
   sizes: z.array(productVariantSizeSchema)
 });
 
-export const createProductSchema = z.object({
+const productCoreSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   price: z.number().min(0),
@@ -35,13 +35,23 @@ export const createProductSchema = z.object({
   isFeatured: z.boolean().default(false),
   seoTitle: z.string().max(60).optional(),
   seoDescription: z.string().max(160).optional()
-}).refine(data => !data.salePrice || data.salePrice < data.price, {
+});
+
+export const createProductSchema = productCoreSchema.refine(data => !data.salePrice || data.salePrice < data.price, {
   message: "Sale price must be less than regular price",
   path: ["salePrice"]
 });
 
-export const updateProductSchema = createProductSchema.partial().extend({
+export const updateProductSchema = productCoreSchema.partial().extend({
   id: z.string()
+}).refine(data => {
+  if (data.salePrice !== undefined && data.price !== undefined) {
+    return data.salePrice < data.price;
+  }
+  return true;
+}, {
+  message: "Sale price must be less than regular price",
+  path: ["salePrice"]
 });
 
 export const updateVariantStockSchema = z.object({

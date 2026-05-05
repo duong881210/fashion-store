@@ -8,20 +8,22 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { useCartStore } from '@/stores/useCartStore';
 
 export default function Topbar() {
   const { data: session } = useSession();
   const pathname = usePathname();
+  const { clearCart } = useCartStore();
   
   // Create a pleasant title from the pathname
   const getPageTitle = () => {
-    if (pathname === '/admin') return 'Dashboard';
+    if (pathname === '/admin') return 'Bảng Điều Khiển';
     const segments = pathname.split('/').filter(Boolean);
     if (segments.length > 1) {
       const segment = segments[1];
       return segment.charAt(0).toUpperCase() + segment.slice(1);
     }
-    return 'Admin';
+    return 'Quản Trị';
   };
 
   return (
@@ -52,16 +54,16 @@ export default function Topbar() {
           <DropdownMenuContent className="w-56" align="end" forceMount>
             <DropdownMenuLabel className="font-normal border-b pb-2 mb-2">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{session?.user?.name || "Admin User"}</p>
+                <p className="text-sm font-medium leading-none">{session?.user?.name || "Quản Trị Viên"}</p>
                 <p className="text-xs leading-none text-muted-foreground">
                   {session?.user?.email || "admin@fashionstore.com"}
                 </p>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuItem asChild><Link href="/profile">Profile settings</Link></DropdownMenuItem>
+            <DropdownMenuItem asChild><Link href="/profile">Cài Đặt Hồ Sơ</Link></DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>
-              Log out
+            <DropdownMenuItem onClick={() => { clearCart(); signOut({ callbackUrl: '/' }); }}>
+              Đăng Xuất
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

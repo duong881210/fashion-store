@@ -13,14 +13,14 @@ import { Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
 const registerSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').max(50),
-  email: z.string().email('Please enter a valid email address'),
+  name: z.string().min(2, 'Tên phải có ít nhất 2 ký tự').max(50),
+  email: z.string().email('Vui lòng nhập địa chỉ email hợp lệ'),
   password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain uppercase, lowercase and number'),
+    .min(8, 'Mật khẩu phải có ít nhất 8 ký tự')
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Mật khẩu phải chứa chữ hoa, chữ thường và số'),
   confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: "Mật khẩu không khớp",
   path: ["confirmPassword"],
 });
 
@@ -82,7 +82,7 @@ export default function RegisterForm() {
         });
       },
       onError: (err) => {
-        setError(err.message || 'Registration failed. Please try again.');
+        setError(err.message || 'Đăng ký thất bại. Vui lòng thử lại.');
       }
     });
   };
@@ -92,8 +92,8 @@ export default function RegisterForm() {
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Create an Account</h1>
-        <p className="text-gray-500">Sign up to unlock exclusive features and offers</p>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Tạo Tài Khoản</h1>
+        <p className="text-gray-500">Đăng ký để mở khóa các tính năng và ưu đãi độc quyền</p>
       </div>
 
       {error && (
@@ -109,9 +109,9 @@ export default function RegisterForm() {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Full Name</FormLabel>
+                <FormLabel>Họ và tên</FormLabel>
                 <FormControl>
-                  <Input placeholder="John Doe" {...field} disabled={isSubmitting} />
+                  <Input placeholder="Nguyễn Văn A" {...field} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -137,7 +137,7 @@ export default function RegisterForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <FormLabel>Mật khẩu</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input 
@@ -169,11 +169,11 @@ export default function RegisterForm() {
                     ))}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    {strengthScore === 0 && 'Enter a password'}
-                    {strengthScore === 1 && 'Weak password'}
-                    {strengthScore === 2 && 'Fair password'}
-                    {strengthScore === 3 && 'Good password'}
-                    {strengthScore === 4 && 'Strong password'}
+                    {strengthScore === 0 && 'Nhập mật khẩu'}
+                    {strengthScore === 1 && 'Mật khẩu yếu'}
+                    {strengthScore === 2 && 'Mật khẩu trung bình'}
+                    {strengthScore === 3 && 'Mật khẩu tốt'}
+                    {strengthScore === 4 && 'Mật khẩu mạnh'}
                   </p>
                 </div>
                 
@@ -187,7 +187,7 @@ export default function RegisterForm() {
             name="confirmPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Confirm Password</FormLabel>
+                <FormLabel>Xác nhận mật khẩu</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input 
@@ -211,15 +211,15 @@ export default function RegisterForm() {
           />
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? 'Creating account...' : 'Create account'}
+            {isSubmitting ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}
           </Button>
         </form>
       </Form>
 
       <p className="text-center text-sm text-gray-600">
-        Already have an account?{' '}
+        Đã có tài khoản?{' '}
         <Link href="/login" className="font-semibold text-black hover:underline">
-          Sign in
+          Đăng nhập
         </Link>
       </p>
     </div>

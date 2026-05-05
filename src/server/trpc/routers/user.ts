@@ -53,6 +53,16 @@ export const userRouter = router({
       return user;
     }),
 
+  getWishlist: protectedProcedure
+    .query(async ({ ctx }) => {
+      await connectDB();
+      const user = await User.findById(ctx.session.user.id).populate('wishlist');
+      if (!user) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
+      }
+      return user.wishlist;
+    }),
+
   updateProfile: protectedProcedure
     .input(updateProfileSchema)
     .mutation(async ({ ctx, input }) => {

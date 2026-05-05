@@ -21,22 +21,22 @@ export default function ProfileTabs({ user }: { user: any }) {
     );
   }
 
-  if (!profile) return <div>Failed to load profile. Please refresh.</div>;
+  if (!profile) return <div>Tải hồ sơ thất bại. Vui lòng làm mới trang.</div>;
 
   return (
     <Tabs defaultValue="info" className="flex flex-col md:flex-row gap-6 items-start">
       <TabsList className="flex md:flex-col h-auto justify-start border p-1 w-full md:w-64 rounded-xl bg-white md:sticky md:top-24 shadow-sm">
         <TabsTrigger value="info" className="w-full justify-start px-4 text-left py-3 data-[state=active]:bg-gray-100 data-[state=active]:shadow-sm rounded-lg mb-1 transition-all">
-          <User2 className="mr-3 h-4 w-4" /> Personal Info
+          <User2 className="mr-3 h-4 w-4" /> Thông Tin Cá Nhân
         </TabsTrigger>
         <TabsTrigger value="addresses" className="w-full justify-start px-4 text-left py-3 data-[state=active]:bg-gray-100 data-[state=active]:shadow-sm rounded-lg mb-1 transition-all">
-          <MapPin className="mr-3 h-4 w-4" /> Addresses
+          <MapPin className="mr-3 h-4 w-4" /> Địa Chỉ
         </TabsTrigger>
         <TabsTrigger value="password" className="w-full justify-start px-4 text-left py-3 data-[state=active]:bg-gray-100 data-[state=active]:shadow-sm rounded-lg mb-1 transition-all text-gray-900 border-transparent bg-transparent">
-          <Lock className="mr-3 h-4 w-4" /> Change Password
+          <Lock className="mr-3 h-4 w-4" /> Đổi Mật Khẩu
         </TabsTrigger>
         <TabsTrigger value="wishlist" className="w-full justify-start px-4 text-left py-3 data-[state=active]:bg-gray-100 data-[state=active]:shadow-sm rounded-lg transition-all">
-          <Heart className="mr-3 h-4 w-4" /> Favourite
+          <Heart className="mr-3 h-4 w-4" /> Yêu Thích
         </TabsTrigger>
       </TabsList>
 

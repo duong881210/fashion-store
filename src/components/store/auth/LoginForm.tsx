@@ -5,31 +5,33 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSearchParams } from 'next/navigation';
-import { signInWithCredentials, signInWithGoogle } from '@/app/actions/auth';
+import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Eye, EyeOff } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(1, 'Password is required'),
+  email: z.string().email('Vui lòng nhập địa chỉ email hợp lệ'),
+  password: z.string().min(1, 'Mật khẩu là bắt buộc'),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/';
   const urlError = searchParams.get('error') === 'OAuthAccountNotLinked' 
-    ? 'Email already in use with different provider' 
+    ? 'Email đã được sử dụng với nhà cung cấp khác' 
     : searchParams.get('error');
 
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(urlError);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -39,27 +41,40 @@ export default function LoginForm() {
     },
   });
 
-  const onSubmit = (values: LoginFormValues) => {
+  const onSubmit = async (values: LoginFormValues) => {
     setError(null);
-    startTransition(async () => {
-      const result = await signInWithCredentials(values.email, values.password, callbackUrl);
+    setIsPending(true);
+    
+    try {
+      const result = await signIn('credentials', {
+        redirect: false,
+        email: values.email,
+        password: values.password,
+      });
+      
       if (result?.error) {
-        setError(result.error);
+        setError('Email hoặc mật khẩu không hợp lệ');
+        setIsPending(false);
+      } else {
+        // Force full refresh to clear Next.js layout cache and update SessionProvider
+        window.location.href = callbackUrl;
       }
-    });
+    } catch (err) {
+      setError('Đã xảy ra lỗi không mong muốn');
+      setIsPending(false);
+    }
   };
 
   const onGoogleSignIn = () => {
-    startTransition(async () => {
-      await signInWithGoogle(callbackUrl);
-    });
+    setIsPending(true);
+    signIn('google', { callbackUrl });
   };
 
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Welcome Back</h1>
-        <p className="text-gray-500">Enter your credentials to securely access your account</p>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Chào mừng trở lại</h1>
+        <p className="text-gray-500">Nhập thông tin đăng nhập để truy cập tài khoản của bạn một cách an toàn</p>
       </div>
 
       {error && (
@@ -89,7 +104,7 @@ export default function LoginForm() {
             render={({ field }) => (
               <FormItem>
                 <div className="flex items-center justify-between">
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>Mật khẩu</FormLabel>
                 </div>
                 <FormControl>
                   <div className="relative">
@@ -113,7 +128,7 @@ export default function LoginForm() {
             )}
           />
           <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? 'Signing in...' : 'Sign in'}
+            {isPending ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </Button>
         </form>
       </Form>
@@ -123,7 +138,7 @@ export default function LoginForm() {
           <span className="w-full border-t border-gray-200" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white px-2 text-gray-500">Or continue with</span>
+          <span className="bg-white px-2 text-gray-500">Hoặc tiếp tục với</span>
         </div>
       </div>
 
@@ -139,9 +154,9 @@ export default function LoginForm() {
       </Button>
 
       <p className="text-center text-sm text-gray-600">
-        Don&apos;t have an account?{' '}
+        Bạn chưa có tài khoản?{' '}
         <Link href="/register" className="font-semibold text-black hover:underline">
-          Sign up
+          Đăng ký
         </Link>
       </p>
     </div>

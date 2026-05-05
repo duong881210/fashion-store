@@ -17,13 +17,13 @@ import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 
 const navItems = [
-  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { name: 'Products', href: '/admin/products', icon: Package },
-  { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
-  { name: 'Customers', href: '/admin/customers', icon: Users },
-  { name: 'Chat', href: '/admin/chat', icon: MessageSquare },
-  { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-  { name: 'Settings', href: '/admin/settings', icon: Settings },
+  { name: 'Bảng Điều Khiển', href: '/admin', icon: LayoutDashboard },
+  { name: 'Sản Phẩm', href: '/admin/products', icon: Package },
+  { name: 'Đơn Hàng', href: '/admin/orders', icon: ShoppingCart },
+  { name: 'Khách Hàng', href: '/admin/customers', icon: Users },
+  { name: 'Trò Chuyện', href: '/admin/chat', icon: MessageSquare },
+  { name: 'Thống Kê', href: '/admin/analytics', icon: BarChart3 },
+  { name: 'Cài Đặt', href: '/admin/settings', icon: Settings },
 ];
 
 export default function Sidebar() {
@@ -39,7 +39,7 @@ export default function Sidebar() {
       <div className="h-16 flex items-center justify-between px-4 border-b border-border">
         {!collapsed && (
           <Link href="/admin" className="font-display font-bold text-lg tracking-tight truncate">
-            Admin Panel
+            Bảng Quản Trị
           </Link>
         )}
         {collapsed && (
@@ -86,7 +86,7 @@ export default function Sidebar() {
             collapsed ? "justify-center" : "justify-start"
           )}>
             <ChevronLeft className={cn("h-5 w-5", !collapsed && "mr-3")} />
-            {!collapsed && <span>Back to Store</span>}
+            {!collapsed && <span>Trở về Cửa Hàng</span>}
           </span>
         </Link>
       </div>

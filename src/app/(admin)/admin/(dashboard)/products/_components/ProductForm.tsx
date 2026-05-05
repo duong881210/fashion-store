@@ -135,13 +135,13 @@ export function ProductForm({ initialData, categories }: { initialData?: any, ca
         toast.success('Product updated successfully');
       } else {
         await createMutation.mutateAsync(values);
-        toast.success('Product created successfully');
+        toast.success('Thêm sản phẩm thành công');
         localStorage.removeItem('product_draft'); // clear draft
       }
       router.push('/admin/products');
       router.refresh();
     } catch (error: any) {
-      toast.error('Error saving product: ' + error.message);
+      toast.error('Lỗi khi lưu sản phẩm: ' + error.message);
     }
   };
 
@@ -190,8 +190,8 @@ export function ProductForm({ initialData, categories }: { initialData?: any, ca
             <CardContent className="space-y-4">
               <FormField control={form.control} name="name" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Product Name</FormLabel>
-                  <FormControl><Input {...field} placeholder="Enter product name" /></FormControl>
+                  <FormLabel>Tên Sản Phẩm</FormLabel>
+                  <FormControl><Input {...field} placeholder="Nhập tên sản phẩm" /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -203,10 +203,10 @@ export function ProductForm({ initialData, categories }: { initialData?: any, ca
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="category" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category</FormLabel>
+                    <FormLabel>Danh Mục</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Chọn một danh mục" /></SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {categories.map((c) => (
@@ -218,8 +218,8 @@ export function ProductForm({ initialData, categories }: { initialData?: any, ca
                   </FormItem>
                 )} />
 
-                <FormItem>
-                  <FormLabel>Tags</FormLabel>
+                <div className="space-y-2">
+                  <Label>Tags</Label>
                   <div className="flex border rounded-md p-1 flex-wrap gap-1 min-h-10 items-center">
                     {form.getValues('tags')?.map((tag: string) => (
                       <Badge key={tag} variant="secondary" className="flex items-center gap-1 h-6">
@@ -228,26 +228,26 @@ export function ProductForm({ initialData, categories }: { initialData?: any, ca
                     ))}
                     <Input 
                       className="border-0 shadow-none focus-visible:ring-0 w-32 h-7 p-1 text-sm inline-flex flex-1" 
-                      placeholder="Type & Enter..." 
+                      placeholder="Nhập & Enter..." 
                       value={tagInput}
                       onChange={(e) => setTagInput(e.target.value)}
                       onKeyDown={handleTagKeydown}
                     />
                   </div>
-                </FormItem>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="price" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Price (VND)</FormLabel>
+                    <FormLabel>Giá (VND)</FormLabel>
                     <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="salePrice" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Sale Price (VND)</FormLabel>
+                    <FormLabel>Giá Khuyến Mãi (VND)</FormLabel>
                     <FormControl><Input type="number" value={field.value || ''} onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)} /></FormControl>
                     <FormMessage />
                   </FormItem>
@@ -273,7 +273,7 @@ export function ProductForm({ initialData, categories }: { initialData?: any, ca
                      className="w-full h-32 border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/50 cursor-pointer transition-colors"
                    >
                      <Plus className="h-8 w-8 mb-2" />
-                     <span>Click or drop images to upload</span>
+                     <span>Nhấp hoặc thả hình ảnh để tải lên</span>
                    </div>
                  )}
                </CldUploadWidget>
@@ -317,11 +317,11 @@ export function ProductForm({ initialData, categories }: { initialData?: any, ca
           <Card>
              <CardHeader className="flex flex-row justify-between items-center">
                <div>
-                 <CardTitle>Variants</CardTitle>
-                 <CardDescription>Manage colors, sizes, and inventory</CardDescription>
+                 <CardTitle>Biến Thể</CardTitle>
+                 <CardDescription>Quản lý màu sắc, kích thước và tồn kho</CardDescription>
                </div>
                <Button type="button" variant="outline" size="sm" onClick={() => appendVariant({ color: '', colorHex: '#000000', sizes: [] })}>
-                 <Plus className="h-4 w-4 mr-2"/> Add Color
+                 <Plus className="h-4 w-4 mr-2"/> Thêm Màu
                </Button>
              </CardHeader>
              <CardContent className="space-y-6">
@@ -372,8 +372,8 @@ export function ProductForm({ initialData, categories }: { initialData?: any, ca
               <FormField control={form.control} name="isPublished" render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-base">Published</FormLabel>
-                    <FormDescription>Make product visible to customers</FormDescription>
+                    <FormLabel className="text-base">Xuất Bản</FormLabel>
+                    <FormDescription>Hiển thị sản phẩm cho khách hàng</FormDescription>
                   </div>
                   <FormControl>
                     <Checkbox checked={field.value} onCheckedChange={field.onChange} />
@@ -384,8 +384,8 @@ export function ProductForm({ initialData, categories }: { initialData?: any, ca
               <FormField control={form.control} name="isFeatured" render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-base">Featured</FormLabel>
-                    <FormDescription>Highlight on homepage</FormDescription>
+                    <FormLabel className="text-base">Nổi Bật</FormLabel>
+                    <FormDescription>Nổi bật trên trang chủ</FormDescription>
                   </div>
                   <FormControl>
                     <Checkbox checked={field.value} onCheckedChange={field.onChange} />
@@ -402,17 +402,17 @@ export function ProductForm({ initialData, categories }: { initialData?: any, ca
                   form.setValue('isPublished', false);
                   form.handleSubmit(onSubmit as any)();
                 }} disabled={isSubmitting}>
-                  Save as Draft
+                  Lưu Nháp
                 </Button>
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? 'Saving...' : (initialData ? 'Update Product' : 'Publish Product')}
+                  {isSubmitting ? 'Đang lưu...' : (initialData ? 'Cập Nhật Sản Phẩm' : 'Xuất Bản Sản Phẩm')}
                 </Button>
                 
-                {isDraftSaving && <p className="text-xs text-center text-muted-foreground">Autosaving draft...</p>}
+                {isDraftSaving && <p className="text-xs text-center text-muted-foreground">Đang tự động lưu nháp...</p>}
 
                 {initialData?._id && initialData?.isPublished && (
                    <Link href={`/products/${initialData.slug}`} target="_blank" className="block text-center text-sm font-medium text-blue-600 hover:underline">
-                     View on storefront
+                     Xem trên cửa hàng
                    </Link>
                 )}
              </CardContent>
@@ -440,13 +440,13 @@ function VariantBuilder({ form, nestIndex, removeVariant }: { form: any, nestInd
       <div className="grid grid-cols-2 gap-4">
         <FormField control={form.control} name={`variants.${nestIndex}.color`} render={({ field }) => (
           <FormItem>
-            <FormLabel>Color Name</FormLabel>
-            <FormControl><Input {...field} placeholder="e.g. Black" /></FormControl>
+            <FormLabel>Tên Màu</FormLabel>
+            <FormControl><Input {...field} placeholder="VD: Đen" /></FormControl>
           </FormItem>
         )} />
         <FormField control={form.control} name={`variants.${nestIndex}.colorHex`} render={({ field }) => (
           <FormItem>
-            <FormLabel>Hex Value</FormLabel>
+            <FormLabel>Mã Màu</FormLabel>
             <div className="flex gap-2">
                <FormControl><Input type="color" className="w-12 h-10 p-1" {...field} /></FormControl>
                <FormControl><Input {...field} /></FormControl>
@@ -457,9 +457,9 @@ function VariantBuilder({ form, nestIndex, removeVariant }: { form: any, nestInd
 
       <div className="space-y-2">
         <div className="flex justify-between items-center">
-          <Label>Sizes & Stock</Label>
+          <Label>Kích Thước & Tồn Kho</Label>
           <Button type="button" variant="ghost" size="sm" onClick={() => append({ size: '', stock: 0 })}>
-            <Plus className="h-4 w-4 mr-2" /> Add Size
+            <Plus className="h-4 w-4 mr-2" /> Thêm Kích Thước
           </Button>
         </div>
         

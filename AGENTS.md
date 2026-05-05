@@ -1,104 +1,176 @@
-## PROMPT 3.3 — Storefront Product Pages
+# ═══════════════════════════════════════════
+# PHASE 4 — CART, CHECKOUT & ORDER FLOW
+# ═══════════════════════════════════════════
+
+## PROMPT 4.1 — Cart, Order & Coupon Models + tRPC Routers
 
 ```
-Context: Product backend complete. Storefront layout from Phase 1. Next.js 16 App Router.
-Phase 3 Step 3: Customer-facing product catalog.
+Context: Phase 1-3 complete. Products in DB. Auth working. Mongoose 9.
+Phase 4: Shopping flow backend.
 
-## TASK: Build all storefront product pages
+## TASK: Implement cart, order, and coupon backend
 
-### IMPORTANT: Next.js 16 async params
-```typescript
-// CORRECT in Next.js 16:
-export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params  // MUST await
-  // ...
-}
+### 1. Cart Model (`src/server/db/models/Cart.ts`)
+One cart per user (user field with unique index).
+Items: product (ref), productName (snapshot), productImage (snapshot), color, size,
+quantity (min:1), priceAtAdd (snapshot of price at time of adding).
+Timestamps.
 
-// generateMetadata also receives async params:
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params
-  // ...
-}
+### 2. Coupon Model (`src/server/db/models/Coupon.ts`)
+Fields: code (unique, uppercase, index), type ('percentage'|'fixed'),
+value (Number), minOrderValue (Number, default 0), maxDiscount (Number?),
+usageLimit (Number), usedCount (Number, default 0),
+usedBy [ref User], expiresAt (Date), isActive (Boolean, default true), timestamps.
+
+### 3. Order Model (`src/server/db/models/Order.ts`)
+Auto-generate orderCode: `'FS' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2,5).toUpperCase()`
+
+Full status enum: 'pending'|'confirmed'|'processing'|'shipping'|'delivered'|'cancelled'|'refunded'
+Payment status: 'unpaid'|'paid'|'refunded'
+Payment method: 'vnpay'|'cod'
+
+Timeline array: [{ status, message, timestamp, updatedBy }]
+
+Pre-save hook: when `status` changes, auto-push to timeline array.
+
+Indexes: customer+status, paymentStatus, createdAt, orderCode (unique).
+
+### 4. Cart tRPC Router (`src/server/trpc/routers/cart.ts`)
+All procedures: `protectedProcedure`
+
+- `get`: findOneAndUpdate (upsert) cart by userId, populate product details for each item.
+  Cross-check each item against current product stock — mark items as `outOfStock: true` if stock=0.
+
+- `addItem`: find product+variant+size, validate stock >= requested qty.
+  If item already exists in cart: increment quantity. Return updated cart.
+
+- `updateQuantity`: validate new qty against stock, update.
+
+- `removeItem`: pull from items array.
+
+- `clear`: set items: [].
+
+- `syncGuestCart`: input { guestItems: { productId, color, size, quantity }[] }
+  Merge guest cart into DB cart on user login. Validate each item's stock.
+
+### 5. Order tRPC Router (`src/server/trpc/routers/order.ts`)
+
+`create` (protected):
+```
+Input: { shippingAddressId, paymentMethod, couponCode? }
+1. Get user's cart from DB, validate not empty
+2. Re-validate ALL item stocks (race condition protection)
+3. Apply coupon if provided (validate + calculate discount)
+4. Calculate: subtotal, shippingFee (from Settings), discount, total
+5. MongoDB TRANSACTION:
+   a. Create Order document
+   b. For each item: Product.findOneAndUpdate with $inc to decrement stock (atomic)
+      - If stock goes negative: abort transaction, throw TRPCError
+   c. Coupon.findOneAndUpdate: $inc usedCount, $push usedBy (if coupon)
+   d. Cart.findOneAndUpdate: set items: []
+6. Return { orderId, orderCode, paymentMethod }
+   (caller redirects based on paymentMethod)
 ```
 
-### 1. Product Listing Page (`src/app/(store)/products/page.tsx`)
-Server Component with Suspense:
-- URL-based filters: `?category=ao&priceMin=0&priceMax=500000&sizes=S,M&sort=newest`
-- Read filters from `searchParams` (also async in Next.js 16: `const sp = await searchParams`)
-- Fetch products server-side, pass to client ProductGrid component
+- `getMyOrders` (protected): paginated, filter by status, populate item snapshots
+- `getById` (protected): verify session.user.id === order.customer OR role === 'admin'
+- `cancel` (protected): only if status === 'pending'.
+  Transaction: set status='cancelled', restore stock for each item, update coupon usedCount.
+- `getAll` (admin): filter by status/paymentStatus/dateRange/search orderCode or email
+- `updateStatus` (admin): validate allowed transitions:
+  pending→confirmed→processing→shipping→delivered
+  Any status→cancelled (admin can cancel any)
+  delivered→refunded
+  Emit Socket.io event (Phase 6 wires this up — stub the call for now)
+- `getStats` (admin): aggregate pipeline for revenue/orders by time period
 
-Filter Sidebar (Client Component, Sheet on mobile):
-- Category accordion (multi-select checkboxes)
-- Price range slider (Radix Slider, 0–5,000,000đ)
-- Size buttons (XS/S/M/L/XL/XXL toggle)
-- Color swatches (colored circles)
-- Rating filter (star icons, "4 stars & up")
-- "Xóa bộ lọc" link — clears all query params
-
-ProductGrid (Client Component):
-- CSS Grid: 3 cols desktop, 2 tablet, 1 mobile
-- ProductCard (see below)
-- Pagination with Next.js `<Link>` for SEO-friendly navigation
-
-ProductCard Component:
-- next/image with hover: show second image on hover (CSS transition opacity)
-- Sale badge: red badge showing "-%{percent}"
-- Out of Stock overlay: semi-transparent with "Hết hàng" text
-- Name, price (del if on sale), rating stars + count
-- Wishlist button (heart icon, calls `trpc.user.toggleWishlist`)
-- "Thêm vào giỏ" quick-add (opens size selector Popover if multiple sizes, or adds directly)
-- Quick View on hover → Dialog with condensed product info
-
-### 2. Product Detail Page (`src/app/(store)/products/[slug]/page.tsx`)
-Server Component (SEO-critical):
-```typescript
-export async function generateStaticParams() {
-  // return slugs of top 100 products for ISR
-}
-export const revalidate = 3600 // ISR: revalidate every hour
-```
-
-generateMetadata: use product.seoTitle/seoDescription/images[0] for og:image.
-
-Layout (2-column on desktop):
-**Left: Image Gallery**
-- Main image: `fill` layout, objectFit: contain, click to zoom (Dialog with full-size)
-- Thumbnails: horizontal scroll strip, click updates main image
-- Mobile: touch-swipeable carousel (use `embla-carousel-react`)
-
-**Right: Product Info**
-- Breadcrumb: Home > {category.name} > {product.name}
-- Name (Playfair Display, 2xl)
-- Rating: star display (half stars) + "{count} đánh giá" anchor link
-- Price: `{salePrice}đ` bold red | `{price}đ` gray strikethrough
-- Color selector: pill buttons, selected shows border + checkmark
-- Size selector: grid of size buttons (disabled + line-through if out of stock)
-- Size guide link → Dialog with size chart table
-- Low stock warning: "Chỉ còn {n} sản phẩm" if stock < 5
-- Quantity stepper
-- "Thêm vào giỏ hàng" (primary, full width) — adds to `useCartStore`
-- "Mua ngay" (secondary) — add + redirect /checkout
-- Product description accordion tabs
-
-**Below: Related Products** (same category, limit 8, horizontal scroll on mobile)
-
-**Below: Reviews** (Client Component, pagination)
-- Rating breakdown bar chart
-- Review cards + "Viết đánh giá" (only if delivered order + not yet reviewed)
-
-### 3. Homepage (`src/app/(store)/page.tsx`)
-Server Component with multiple Suspense boundaries:
-- Hero carousel (Client Component, auto-advance, 3 banners)
-- Category grid (Server Component with next/image)
-- New Arrivals (Server Component + horizontal scroll)
-- Promotional banner with countdown timer (Client Component)
-- Best Sellers section
+### Coupon procedures:
+- `validate` (protected): check code, expiry, usageLimit, minOrderValue, not used by this user.
+  Return { isValid, discount, message }
+- `create` (admin), `getAll` (admin), `toggle` (admin): activate/deactivate
 
 ### QUALITY REQUIREMENTS
-- Use `React.use()` for unwrapping server data promises where applicable
-- All images: explicit width/height OR layout="fill" with parent position:relative
-- `loading="lazy"` on below-fold images, `priority` on hero/first product image
-- Structured data (JSON-LD) in product detail page for Google Shopping
+- MongoDB transactions: use `mongoose.startSession()` + `session.withTransaction()`
+- Mongoose 9: all async, no callbacks
+- Stock decrement MUST be atomic: use `findOneAndUpdate` with `$inc` + `{ new: true }` to check final value
+- All money: integers in VND (no floats, no decimals)
+```
+
+---
+
+## PROMPT 4.2 — Cart & Checkout UI
+
+```
+Context: Cart/Order/Coupon tRPC routers done. Phase 4 Step 2.
+
+## TASK: Build cart page, checkout flow, order history
+
+### 1. Cart Page (`src/app/(store)/cart/page.tsx`)
+Two-column desktop layout (60/40):
+
+Left — Cart Items:
+- Each item: next/image thumbnail, name, color+size badge, unit price
+- Quantity stepper with optimistic update (useOptimistic from React 19) — debounced mutation
+- Remove button with optimistic removal
+- "Out of stock" warning overlay if item.outOfStock === true
+- Empty state: illustration + "Khám phá sản phẩm" button
+
+Right — Order Summary (sticky top-8):
+- Subtotal
+- Coupon input: text + "Áp dụng" button → `trpc.coupon.validate` → show green discount line or red error
+- Shipping: "Tính khi thanh toán" until address known
+- Total (bold, large)
+- "Tiến hành thanh toán" button (disabled if cart empty or has out-of-stock items)
+- Trust badges: lock icon "Thanh toán bảo mật", return icon "Đổi trả dễ dàng"
+
+### 2. Mini Cart Drawer (`src/components/store/MiniCart.tsx`)
+- shadcn Sheet, slides from right
+- Condensed item list (image + name + price + remove)
+- Subtotal + "Xem giỏ hàng" + "Thanh toán" CTA buttons
+- Opened via `useUIStore.setMiniCartOpen(true)` from navbar cart icon
+
+### 3. Checkout Page (`src/app/(store)/checkout/page.tsx`)
+Protected route (server-side auth check via `await auth()`).
+Multi-step form with progress indicator (shadcn Progress):
+
+**Step 1 — Địa chỉ giao hàng:**
+- Radio list of user's saved addresses (populated from trpc.user.getProfile)
+- "Dùng địa chỉ mới" → inline AddressForm
+- Delivery estimate based on province (same province: 1-2 ngày, other: 3-5 ngày)
+
+**Step 2 — Thanh toán:**
+- Order summary: items list (read-only), price breakdown
+- Payment method: VNPay card (with bank card graphic) | COD (cash icon)
+- Coupon (if not already applied from cart page)
+- Terms checkbox
+- "Đặt hàng" button:
+  - COD: call `trpc.order.create` → redirect `/orders/{id}/success`
+  - VNPay: call `trpc.order.create` → then `POST /api/vnpay/create-payment` with orderId → redirect to vnpayUrl
+
+### 4. Order Success/Failure Pages
+`/orders/[id]/success`: animated checkmark (CSS), order code, summary, two CTAs
+`/orders/[id]/failed`: X animation, reason from `?reason=` param, "Thử lại" + "Thanh toán COD" buttons
+
+### 5. Order History (`src/app/(store)/orders/page.tsx`)
+- Order cards: code, date, status badge, item count, total
+- Expandable accordion: items, address, payment info, status timeline (vertical stepper)
+- "Hủy đơn" button (if pending) with confirmation dialog
+- "Đặt lại" button → add items back to cart (validates stock)
+- "Đánh giá" button per item if delivered + not reviewed
+
+### REACT 19 NOTE: Use `useOptimistic` for cart operations:
+```typescript
+const [optimisticItems, updateOptimistic] = useOptimistic(
+  cart.items,
+  (state, { productId, newQty }) =>
+    state.map(item => item.productId === productId ? { ...item, quantity: newQty } : item)
+)
+```
+
+### QUALITY REQUIREMENTS
+- Double-submit prevention: disable "Đặt hàng" button after first click, show spinner
+- Form state persists across step navigation (use Zustand store for checkout flow)
+- VNPay redirect handled client-side with router.push(vnpayUrl) for external redirect
 ```
 
 ---
