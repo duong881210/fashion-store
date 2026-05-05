@@ -259,15 +259,19 @@ export const orderRouter = router({
       limit: z.number().default(10),
       status: z.string().optional(),
       paymentStatus: z.string().optional(),
-      search: z.string().optional()
+      search: z.string().optional(),
+      customerId: z.string().optional(),
+      cursor: z.number().optional()
     }))
     .query(async ({ input }) => {
       await connectDB();
-      const skip = (input.page - 1) * input.limit;
+      const currentPage = input.cursor ?? input.page;
+      const skip = (currentPage - 1) * input.limit;
       const query: any = {};
       
       if (input.status && input.status !== 'all') query.status = input.status;
       if (input.paymentStatus && input.paymentStatus !== 'all') query.paymentStatus = input.paymentStatus;
+      if (input.customerId) query.customer = input.customerId;
       if (input.search) {
         query.orderCode = { $regex: input.search, $options: 'i' };
       }
@@ -285,7 +289,8 @@ export const orderRouter = router({
       return {
         orders: JSON.parse(JSON.stringify(orders)),
         total,
-        totalPages: Math.ceil(total / input.limit)
+        totalPages: Math.ceil(total / input.limit),
+        nextCursor: (currentPage * input.limit < total) ? currentPage + 1 : undefined
       };
     }),
 
@@ -319,7 +324,7 @@ export const orderRouter = router({
     }).optional())
     .query(async ({ input }) => {
       await connectDB();
-      const query: any = { status: { $nin: ['cancelled', 'refunded'] } };
+      const query: any = {};
       
       if (input?.startDate && input?.endDate) {
         query.createdAt = {
@@ -329,10 +334,10 @@ export const orderRouter = router({
       }
       
       const stats = await Order.aggregate([
-        { $match: query },
+        { $match: { ...query, status: { $nin: ['cancelled', 'refunded'] } } },
         {
           $group: {
-            _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "+07:00" } },
             revenue: { $sum: "$total" },
             orders: { $sum: 1 }
           }
@@ -340,9 +345,19 @@ export const orderRouter = router({
         { $sort: { _id: 1 } }
       ]);
       
+      const ordersByStatus = await Order.aggregate([
+        { $match: query },
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 }
+          }
+        }
+      ]);
+      
       const totalRevenue = stats.reduce((sum, day) => sum + day.revenue, 0);
       const totalOrders = stats.reduce((sum, day) => sum + day.orders, 0);
       
-      return { stats, totalRevenue, totalOrders };
+      return { stats, ordersByStatus, totalRevenue, totalOrders };
     })
 });

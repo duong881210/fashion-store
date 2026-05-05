@@ -90,5 +90,14 @@ export const couponRouter = router({
       coupon.isActive = !coupon.isActive;
       await coupon.save();
       return coupon;
+    }),
+
+  delete: adminProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input }) => {
+      await connectDB();
+      const result = await Coupon.findByIdAndDelete(input.id);
+      if (!result) throw new TRPCError({ code: 'NOT_FOUND' });
+      return { success: true };
     })
 });

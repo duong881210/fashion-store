@@ -234,6 +234,27 @@ export const productRouter = router({
       return true;
     }),
 
+  getLowStockCount: adminProcedure
+    .input(z.object({ threshold: z.number().optional().default(10) }).optional())
+    .query(async ({ input }) => {
+      await connectDB();
+      const threshold = input?.threshold || 10;
+      
+      const products = await Product.aggregate([
+        { $unwind: "$variants" },
+        { $unwind: "$variants.sizes" },
+        {
+          $group: {
+            _id: "$_id",
+            totalStock: { $sum: "$variants.sizes.stock" }
+          }
+        },
+        { $match: { totalStock: { $lt: threshold } } }
+      ]);
+      
+      return products.length;
+    }),
+
   getAdminList: adminProcedure
     .input(getAdminListSchema)
     .query(async ({ input }) => {

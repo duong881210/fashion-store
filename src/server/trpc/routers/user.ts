@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { router, publicProcedure, protectedProcedure, adminProcedure } from '../middleware';
 import { User, IUser } from '../../db/models/User';
+import { Order } from '../../db/models/Order';
 import connectDB from '../../db';
 import { TRPCError } from '@trpc/server';
 import {
@@ -160,6 +161,20 @@ export const userRouter = router({
       return user.wishlist;
     }),
 
+  getNewCustomersCount: adminProcedure
+    .query(async () => {
+      await connectDB();
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const count = await User.countDocuments({
+        createdAt: { $gte: sevenDaysAgo },
+        role: 'customer'
+      });
+      
+      return count;
+    }),
+
   getAll: adminProcedure
     .input(getAllUsersSchema)
     .query(async ({ input }) => {
@@ -167,22 +182,50 @@ export const userRouter = router({
       const { page, limit, search } = input;
       const skip = (page - 1) * limit;
 
-      const query = search 
-        ? { 
-            $or: [
-              { name: { $regex: search, $options: 'i' } },
-              { email: { $regex: search, $options: 'i' } }
-            ] 
-          } 
-        : {};
+      const query: any = { role: 'customer' };
+      if (search) {
+        query.$or = [
+          { name: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } },
+          { phone: { $regex: search, $options: 'i' } }
+        ];
+      }
 
       const [users, total] = await Promise.all([
-        User.find(query).skip(skip).limit(limit).select('-password'),
+        User.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).select('-password').lean(),
         User.countDocuments(query)
       ]);
 
+      // Fetch order stats for these users
+      const userIds = users.map(u => u._id);
+      
+      let userStats = [];
+      if (Order && userIds.length > 0) {
+        userStats = await Order.aggregate([
+          { $match: { customer: { $in: userIds }, status: { $nin: ['cancelled', 'refunded'] } } },
+          {
+            $group: {
+              _id: "$customer",
+              ordersCount: { $sum: 1 },
+              totalSpent: { $sum: "$total" }
+            }
+          }
+        ]);
+      }
+
+      const statsMap = userStats.reduce((acc: any, stat: any) => {
+        acc[stat._id.toString()] = stat;
+        return acc;
+      }, {});
+
+      const usersWithStats = users.map(user => ({
+        ...user,
+        ordersCount: statsMap[user._id.toString()]?.ordersCount || 0,
+        totalSpent: statsMap[user._id.toString()]?.totalSpent || 0
+      }));
+
       return {
-        users,
+        users: JSON.parse(JSON.stringify(usersWithStats)),
         total,
         page,
         totalPages: Math.ceil(total / limit)
@@ -200,5 +243,14 @@ export const userRouter = router({
       await user.save();
 
       return user;
+    }),
+
+  getById: adminProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ input }) => {
+      await connectDB();
+      const user = await User.findById(input.id).select('-password').lean();
+      if (!user) throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
+      return JSON.parse(JSON.stringify(user));
     })
 });
