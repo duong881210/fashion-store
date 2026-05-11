@@ -138,6 +138,15 @@ export const orderRouter = router({
         await session.commitTransaction();
         session.endSession();
 
+        // Emit new order to admin
+        ctx.io?.to('admin_room').emit('order:new', {
+          orderId: order._id.toString(),
+          orderCode: order.orderCode,
+          customerName: input.shippingAddress.fullName,
+          total,
+          createdAt: (order as any).createdAt?.toISOString() || new Date().toISOString()
+        });
+
         return { orderId: order._id, orderCode: order.orderCode, paymentMethod: input.paymentMethod, total };
       } catch (error: any) {
         await session.abortTransaction();
@@ -300,7 +309,7 @@ export const orderRouter = router({
       status: z.enum(['pending', 'confirmed', 'processing', 'shipping', 'delivered', 'cancelled', 'refunded']),
       paymentStatus: z.enum(['unpaid', 'paid', 'refunded']).optional()
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       await connectDB();
       const order = await Order.findById(input.id);
       if (!order) throw new TRPCError({ code: 'NOT_FOUND' });
@@ -314,6 +323,17 @@ export const orderRouter = router({
       }
       
       await order.save();
+
+      // Emit status update to customer
+      if (input.status) {
+        ctx.io?.to(`user_${order.customer}`).emit('order:status_updated', {
+          orderId: order._id.toString(),
+          orderCode: order.orderCode,
+          newStatus: input.status,
+          message: `Đơn hàng ${order.orderCode} của bạn đã chuyển sang trạng thái: ${input.status}`
+        });
+      }
+
       return JSON.parse(JSON.stringify(order));
     }),
 

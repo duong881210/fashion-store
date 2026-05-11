@@ -16,12 +16,14 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 
+import { useNotificationStore } from '@/stores/useNotificationStore';
+
 const navItems = [
   { name: 'Bảng Điều Khiển', href: '/admin', icon: LayoutDashboard },
   { name: 'Sản Phẩm', href: '/admin/products', icon: Package },
   { name: 'Đơn Hàng', href: '/admin/orders', icon: ShoppingCart },
   { name: 'Khách Hàng', href: '/admin/customers', icon: Users },
-  { name: 'Trò Chuyện', href: '/admin/chat', icon: MessageSquare },
+  { name: 'Trò Chuyện', href: '/admin/chat', icon: MessageSquare, badge: true },
   { name: 'Thống Kê', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Cài Đặt', href: '/admin/settings', icon: Settings },
 ];
@@ -29,6 +31,7 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const chatUnread = useNotificationStore(state => state.chatUnread);
 
   return (
     <aside className={cn(
@@ -64,14 +67,24 @@ export default function Sidebar() {
           return (
             <Link key={item.name} href={item.href}>
               <span className={cn(
-                "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors mb-1",
+                "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors mb-1",
                 isActive 
                   ? "bg-primary text-primary-foreground hover:bg-primary/90" 
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                collapsed ? "justify-center" : "justify-start"
+                collapsed && "justify-center"
               )}>
-                <item.icon className={cn("h-5 w-5", !collapsed && "mr-3")} />
-                {!collapsed && <span>{item.name}</span>}
+                <div className="flex items-center">
+                  <item.icon className={cn("h-5 w-5", !collapsed && "mr-3")} />
+                  {!collapsed && <span>{item.name}</span>}
+                </div>
+                {!collapsed && item.badge && chatUnread > 0 && (
+                  <span className="bg-destructive text-destructive-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    {chatUnread > 99 ? '99+' : chatUnread}
+                  </span>
+                )}
+                {collapsed && item.badge && chatUnread > 0 && (
+                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive" />
+                )}
               </span>
             </Link>
           );

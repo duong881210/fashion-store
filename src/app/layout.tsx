@@ -5,6 +5,9 @@ import TRPCProvider from '@/components/providers/TRPCProvider';
 import { SessionProvider } from 'next-auth/react';
 import { Toaster } from 'sonner';
 import { auth } from '@/auth';
+import { SocketProvider } from '@/components/providers/SocketProvider';
+import { ClientNotificationListener } from '@/components/store/ClientNotificationListener';
+import { ChatWidget } from '@/components/store/ChatWidget';
 
 const playfairDisplay = Playfair_Display({
   subsets: ['latin'],
@@ -32,10 +35,14 @@ export default async function RootLayout({
     <html lang="en" className={`${playfairDisplay.variable} ${dmSans.variable}`}>
       <body>
         <SessionProvider session={session}>
-          <TRPCProvider>
-            {children}
-            <Toaster />
-          </TRPCProvider>
+          <SocketProvider>
+            <TRPCProvider>
+              {children}
+              <ClientNotificationListener />
+              <ChatWidget />
+              <Toaster />
+            </TRPCProvider>
+          </SocketProvider>
         </SessionProvider>
       </body>
     </html>

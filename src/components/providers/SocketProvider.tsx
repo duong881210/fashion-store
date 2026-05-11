@@ -1,27 +1,32 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import io, { Socket } from 'socket.io-client';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { io, Socket } from 'socket.io-client';
+import { useSession } from 'next-auth/react';
 
 const SocketContext = createContext<Socket | null>(null);
 
-export const useSocket = () => {
-  return useContext(SocketContext);
-};
-
-export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
+export function SocketProvider({ children }: { children: React.ReactNode }) {
+  const { data: session } = useSession();
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001');
-    setSocket(newSocket);
+    if (!session?.user?.id) return;
+
+    const socketInstance = io(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000', {
+      auth: { token: session.user.id }, // Pass session token for server-side auth
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+
+    setSocket(socketInstance);
 
     return () => {
-      newSocket.close();
+      socketInstance.disconnect();
     };
-  }, []);
+  }, [session]);
 
-  return (
-    <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>
-  );
-};
+  return <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>;
+}
+
+export const useSocket = () => useContext(SocketContext);

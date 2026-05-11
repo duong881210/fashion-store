@@ -8,6 +8,7 @@ import { couponRouter } from './routers/coupon';
 import { orderRouter } from './routers/order';
 import { settingsRouter } from './routers/settings';
 import { analyticsRouter } from './routers/analytics';
+import { chatRouter } from './routers/chat';
 
 export const appRouter = router({
   greeting: publicProcedure.query(() => 'hello tRPC v11!'),
@@ -19,6 +20,7 @@ export const appRouter = router({
   order: orderRouter,
   settings: settingsRouter,
   analytics: analyticsRouter,
+  chat: chatRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 // For now we'll create a dummy auth import if undefined, but ideally it should match the actual setup.
 // We'll use next-auth v5 beta pattern
 import { auth } from '@/auth';
+import { AdminNotificationListener } from '@/components/admin/AdminNotificationListener';
 
 export default async function AdminLayout({
   children,
@@ -20,6 +21,7 @@ export default async function AdminLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
+      <AdminNotificationListener />
       <Sidebar />
       <div className="flex-1 flex flex-col relative w-full overflow-hidden">
         <Topbar />

@@ -38,6 +38,8 @@ export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCartStore();
   const [isWishlisted, setIsWishlisted] = useState(false); // Default local state, actual feature requires auth
   const { data: session } = useSession();
+  const [imgSrc, setImgSrc] = useState(product.images[0] || "/placeholder.svg");
+  const [imgSrc2, setImgSrc2] = useState(product.images[1] || null);
 
   const toggleWishlist = trpc.user?.toggleWishlist?.useMutation({
     onSuccess: () => setIsWishlisted(!isWishlisted)
@@ -84,7 +86,7 @@ export function ProductCard({ product }: ProductCardProps) {
         product: product._id,
         name: product.name,
         price: product.salePrice || product.price,
-        image: product.images[0],
+        image: imgSrc,
         color: v.color,
         size: s.size,
         quantity: 1
@@ -125,17 +127,19 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* Image Container */}
         <div className="relative aspect-[3/4] w-full overflow-hidden bg-slate-100 pointer-events-none">
           <Image
-            src={product.images[0] || "/placeholder.jpg"}
+            src={imgSrc}
             alt={product.name}
             fill
-            className={`object-cover transition-opacity duration-500 ${isHovered && product.images[1] ? 'opacity-0' : 'opacity-100'}`}
+            onError={() => setImgSrc("/placeholder.svg")}
+            className={`object-cover transition-opacity duration-500 ${isHovered && imgSrc2 ? 'opacity-0' : 'opacity-100'}`}
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
-          {product.images[1] && (
+          {imgSrc2 && (
             <Image
-              src={product.images[1]}
+              src={imgSrc2}
               alt={`${product.name} alternate view`}
               fill
+              onError={() => setImgSrc2(null)}
               className={`object-cover absolute inset-0 transition-opacity duration-500 ${isHovered ? 'opacity-100' : 'opacity-0'}`}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
