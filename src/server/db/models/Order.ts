@@ -87,7 +87,7 @@ const OrderSchema = new Schema<IOrder>(
   }
 );
 
-OrderSchema.pre('save', function(next) {
+OrderSchema.pre('save', async function() {
   if (this.isNew) {
     this.orderCode = 'FS' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2,5).toUpperCase();
   }
@@ -97,10 +97,8 @@ OrderSchema.pre('save', function(next) {
       status: this.status,
       timestamp: new Date(),
       message: `Đơn hàng chuyển sang trạng thái ${this.status}`
-    });
+    } as any);
   }
-  
-  next();
 });
 
 OrderSchema.index({ customer: 1, status: 1 });
