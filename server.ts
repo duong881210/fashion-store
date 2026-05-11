@@ -21,7 +21,8 @@ app.prepare().then(() => {
   // Attach io to global for tRPC access
   ; (global as any).__io = io;
 
-  httpServer.listen(3000, () => {
-    console.log('Server ready on http://localhost:3000');
+  const port = process.env.PORT || 3000;
+  httpServer.listen(port, () => {
+    console.log(`Server ready on http://localhost:${port}`);
   });
 });

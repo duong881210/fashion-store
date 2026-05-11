@@ -1,267 +1,325 @@
 # ═══════════════════════════════════════════
-# PHASE 6 — REAL-TIME (SOCKET.IO 4.8.3)
+# PHASE 7 — VNPAY + EMAIL + FINAL POLISH
 # ═══════════════════════════════════════════
 
-## PROMPT 6.1 — Socket.io Server Setup & Order Notifications
+## PROMPT 7.1 — VNPay Payment Gateway
 
 ```
-Context: Full project (Phase 1-5) complete. Now adding real-time.
-Socket.io 4.8.3 — latest stable.
+Context: Full project (Phase 1-6) complete. Now integrate VNPay.
 
-## ARCHITECTURE: Custom Next.js server for Socket.io
-Next.js 16 serverless mode doesn't support Socket.io natively. Use a custom server.
+## TASK: VNPay payment flow (sandbox + production ready)
 
-### 1. Custom HTTP Server (`server.ts` at project root)
+### Test credentials
+VNPay Sandbox URL: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+Test card: 9704198526191432198 | 07/15 | OTP: 123456 (Napas)
+
+### 1. VNPay Utility (`src/lib/vnpay.ts`)
+
+**Required functions:**
+
+`createPaymentUrl(params: CreatePaymentParams): string`
 ```typescript
-import { createServer } from 'http'
-import next from 'next'
-import { Server as SocketServer } from 'socket.io'
-import { initSocketServer } from './src/server/socket'
-
-const dev = process.env.NODE_ENV !== 'production'
-const app = next({ dev })
-const handle = app.getRequestHandler()
-
-app.prepare().then(() => {
-  const httpServer = createServer((req, res) => handle(req, res))
-  const io = new SocketServer(httpServer, {
-    cors: { origin: process.env.NEXT_PUBLIC_APP_URL, methods: ['GET', 'POST'] },
-    // Socket.io 4.8.3 options:
-    connectionStateRecovery: { maxDisconnectionDuration: 2 * 60 * 1000 }, // recover missed events
-  })
-  initSocketServer(io)
-  // Attach io to global for tRPC access
-  ;(global as any).__io = io
-  httpServer.listen(3000, () => console.log('Server ready on http://localhost:3000'))
-})
-```
-
-Update `package.json` scripts:
-```json
-"dev": "ts-node --esm server.ts",
-"build": "next build",
-"start": "NODE_ENV=production ts-node --esm server.ts"
-```
-
-### 2. Socket.io Server Module (`src/server/socket/index.ts`)
-
-**TypeScript event map:**
-```typescript
-interface ServerToClientEvents {
-  'order:new': (data: { orderId: string; orderCode: string; customerName: string; total: number; createdAt: string }) => void
-  'order:status_updated': (data: { orderId: string; orderCode: string; newStatus: string; message: string }) => void
-  'order:cancelled': (data: { orderId: string; orderCode: string; customerName: string }) => void
-  'chat:receive': (msg: IChatMessage) => void
-  'chat:typing': (data: { sessionId: string; isTyping: boolean; senderRole: string }) => void
-  'chat:new_message': (data: { sessionId: string; preview: string; customerName: string }) => void
-  'inventory:low': (data: { productId: string; productName: string; color: string; size: string; stock: number }) => void
+interface CreatePaymentParams {
+  orderId: string       // vnp_TxnRef — use order.orderCode
+  amount: number        // in VND — multiply by 100 for VNPay
+  orderInfo: string     // URL-encoded description
+  ipAddr: string        // customer's IP
+  locale?: 'vn' | 'en'
+  returnUrl: string
 }
-interface ClientToServerEvents {
-  'chat:join_session': (sessionId: string) => void
-  'chat:send': (data: { sessionId: string; content: string; type: 'text'|'image' }) => void
-  'chat:typing': (data: { sessionId: string; isTyping: boolean }) => void
-}
-interface SocketData { userId: string; role: 'customer'|'admin' }
 ```
+Steps:
+1. Build vnp_Params object with all required fields
+2. vnp_CreateDate: `format(new Date(), 'yyyyMMddHHmmss')` (use date-fns)
+3. vnp_ExpireDate: 15 minutes later
+4. Sort params keys alphabetically
+5. Build query string (do NOT encode values when building hash, only for URL)
+6. Sign with HMAC-SHA512 (Node.js `crypto.createHmac('sha512', hashSecret)`)
+7. Append vnp_SecureHash to query string and return full URL
 
-**Auth middleware (JWT verification):**
+`verifySignature(query: Record<string, string>): boolean`
+- Extract and remove vnp_SecureHash and vnp_SecureHashType
+- Sort remaining params, rebuild query
+- Recompute HMAC-SHA512, compare with extracted hash
+- Return boolean
+
+`getTransactionMessage(responseCode: string): string`
+Map common VNPay response codes to Vietnamese messages:
+00→Thành công, 07→Giao dịch bị nghi ngờ lừa đảo, 09→Chưa đăng ký Internet Banking,
+24→Giao dịch bị hủy, 51→Không đủ số dư, 65→Vượt hạn mức ngày, 75→Ngân hàng bảo trì,
+99→Lỗi không xác định
+
+### 2. Create Payment API (`src/app/api/vnpay/create-payment/route.ts`)
 ```typescript
-io.use(async (socket, next) => {
-  const token = socket.handshake.auth.token
-  if (!token) return next(new Error('Unauthorized'))
-  // Verify NextAuth JWT using same secret
-  // Attach decoded { userId, role } to socket.data
-  next()
-})
-```
-
-**Connection handler:** admin → join 'admin_room', customer → join `user_${userId}`
-
-### 3. tRPC Context: attach io
-```typescript
-// src/server/trpc/context.ts
-import { type Server } from 'socket.io'
-export const createContext = async () => {
+export async function POST(req: Request) {
   const session = await auth()
-  const io: Server | undefined = (global as any).__io
-  return { session, io }
+  if (!session) return new Response('Unauthorized', { status: 401 })
+
+  const { orderId } = await req.json()
+  // Find order, verify belongs to session user
+  // Verify status === 'pending' and paymentStatus === 'unpaid'
+  // Get IP from headers: req.headers.get('x-forwarded-for')
+  // Call createPaymentUrl()
+  return Response.json({ paymentUrl })
 }
 ```
 
-In Order router's `create` procedure (after transaction commits):
+### 3. VNPay Return URL (`src/app/api/vnpay/return/route.ts`)
 ```typescript
-ctx.io?.to('admin_room').emit('order:new', { orderId, orderCode, customerName, total, createdAt })
-```
-
-In Order router's `updateStatus`:
-```typescript
-ctx.io?.to(`user_${order.customer}`).emit('order:status_updated', { orderId, orderCode, newStatus, message })
-```
-
-### 4. Socket.io Client Provider (`src/components/providers/SocketProvider.tsx`)
-```typescript
-'use client'
-import { createContext, useContext, useEffect, useRef } from 'react'
-import { io, Socket } from 'socket.io-client'
-import { useSession } from 'next-auth/react'
-
-const SocketContext = createContext<Socket | null>(null)
-export function SocketProvider({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession()
-  const socketRef = useRef<Socket | null>(null)
-  useEffect(() => {
-    if (!session?.user?.id) return
-    socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL!, {
-      auth: { token: session.user.id }, // Pass session token for server-side auth
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    })
-    return () => { socketRef.current?.disconnect() }
-  }, [session])
-  return <SocketContext.Provider value={socketRef.current}>{children}</SocketContext.Provider>
-}
-export const useSocket = () => useContext(SocketContext)
-```
-
-Add SocketProvider to root layout (inside SessionProvider).
-
-### 5. Customer Notifications Hook (`src/hooks/useOrderNotifications.ts`)
-Listen to `order:status_updated` → show sonner toast with appropriate message/icon.
-Update tRPC query cache: `utils.order.getMyOrders.invalidate()`.
-
-### 6. Admin Notification System
-In admin layout:
-- Listen to `order:new` → sonner toast + play chime (Web Audio API short beep) + increment bell badge
-- Notification dropdown: list last 10 events from state, "Đánh dấu đã đọc" button
-- Zustand store: `useNotificationStore` { notifications[], unreadCount, addNotification, markAllRead }
-
-### QUALITY REQUIREMENTS
-- Socket.io 4.8.3: leverage `connectionStateRecovery` for missed events during brief disconnects
-- TypeScript: full typed event maps for both ServerToClientEvents and ClientToServerEvents
-- Graceful: if `ctx.io` is undefined, log warning but don't crash tRPC procedure
-```
-
----
-
-## PROMPT 6.2 — Live Chat Feature
-
-```
-Context: Socket.io server running. Order notifications working. Phase 6 Step 2.
-
-## TASK: Build live chat between customers and admin
-
-### 1. ChatMessage Model (`src/server/db/models/ChatMessage.ts`)
-```typescript
-{
-  sessionId: String (index),         // unique per conversation
-  sender: ObjectId ref User,
-  senderRole: 'customer' | 'admin',
-  content: String,
-  type: 'text' | 'image' | 'order_link',
-  metadata: {                        // for type: 'order_link'
-    orderId: String,
-    orderCode: String,
-    orderStatus: String,
-    orderTotal: Number
-  }?,
-  isRead: Boolean (default false),
-  createdAt: Date (index)
-}
-```
-
-### 2. Chat tRPC Router (`src/server/trpc/routers/chat.ts`)
-- `getOrCreateSession` (protected): find ChatMessage where sessionId based on userId, or create new sessionId (`chat_${userId}_${Date.now()}`)
-- `getMessages` (protected): paginated, 50 per page, sorted newest first (reverse display)
-- `getSessions` (admin): all unique sessionIds, last message, unread count, customer info (populated)
-- `markRead` (admin): update all messages in session with isRead: false → true
-- `sendMessage` (protected): save to DB. Socket.io delivery happens separately. Return saved message.
-
-### 3. Chat Socket Events — add to `src/server/socket/index.ts`
-```typescript
-socket.on('chat:join_session', (sessionId: string) => {
-  socket.join(`chat_${sessionId}`)
-})
-
-socket.on('chat:send', async (data: { sessionId: string; content: string; type: string }) => {
-  const msg = await ChatMessage.create({
-    sessionId: data.sessionId,
-    sender: socket.data.userId,
-    senderRole: socket.data.role,
-    content: data.content,
-    type: data.type,
-    isRead: false
-  })
-  io.to(`chat_${data.sessionId}`).emit('chat:receive', msg)
-  if (socket.data.role === 'customer') {
-    const user = await User.findById(socket.data.userId).select('name').lean()
-    io.to('admin_room').emit('chat:new_message', {
-      sessionId: data.sessionId,
-      preview: data.content.slice(0, 50),
-      customerName: user?.name ?? 'Khách'
-    })
+export async function GET(req: Request) {
+  const url = new URL(req.url)
+  const query = Object.fromEntries(url.searchParams)
+  
+  if (!verifySignature(query)) {
+    return Response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/payment-error`)
   }
-})
-
-socket.on('chat:typing', ({ sessionId, isTyping }: { sessionId: string; isTyping: boolean }) => {
-  socket.to(`chat_${sessionId}`).emit('chat:typing', {
-    sessionId, isTyping, senderRole: socket.data.role
-  })
-})
+  
+  const { vnp_TxnRef, vnp_ResponseCode, vnp_TransactionNo, vnp_Amount } = query
+  
+  // Idempotency check: if order already paid, just redirect to success
+  const order = await Order.findOne({ orderCode: vnp_TxnRef })
+  if (!order) return Response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/payment-error`)
+  
+  if (vnp_ResponseCode === '00') {
+    // VERIFY: vnp_Amount / 100 must equal order.total
+    if (parseInt(vnp_Amount) / 100 !== order.total) {
+      // Amount mismatch — fraud prevention
+      return Response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/payment-error`)
+    }
+    if (order.paymentStatus !== 'paid') {
+      await Order.findByIdAndUpdate(order._id, {
+        paymentStatus: 'paid',
+        vnpayTransactionId: vnp_TransactionNo,
+        $push: { timeline: { status: 'paid', message: 'Thanh toán VNPay thành công', timestamp: new Date() } }
+      })
+      // Emit socket notification to admin (via global io)
+    }
+    return Response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/orders/${order._id}/success`)
+  } else {
+    return Response.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/orders/${order._id}/failed?reason=${vnp_ResponseCode}`)
+  }
+}
 ```
 
-### 4. Customer Chat Widget (`src/components/store/ChatWidget.tsx`)
-Client Component, fixed bottom-right:
-- Collapsed: circular button (chat icon + unread badge)
-- Expanded: card 320×460px
-- Unauthenticated: "Đăng nhập để chat" prompt
-- Authenticated:
-  - Header: "Hỗ trợ khách hàng" + green online dot + minimize button
-  - Message thread: scrollable, own messages right (gold bg), admin messages left (gray bg)
-  - Typing indicator (3 animated dots) when admin typing
-  - Image in bottom: text input + send button + optional image upload (Cloudinary)
-  - Auto-scroll to bottom on new message using `useRef` + `scrollIntoView`
+### 4. VNPay IPN Handler (`src/app/api/vnpay/ipn/route.ts`)
+POST handler (VNPay server-to-server callback — more reliable):
+- Verify signature
+- Check order exists + amount matches
+- Update payment status if not already done
+- Return EXACT JSON: `{ RspCode: '00', Message: 'Confirm Success' }` (VNPay requires this)
 
-onMount: `socket.emit('chat:join_session', sessionId)` + load message history.
-
-### 5. Admin Chat Page (`src/app/(admin)/admin/chat/page.tsx`)
-Two-panel Client Component:
-
-Left panel (320px):
-- Search input (customer name)
-- Session list: avatar, name, last message preview (truncated), timestamp, unread count badge (red)
-- Active session: highlighted background
-- New message via Socket.io: move session to top + increment unread badge
-- "Chỉ hiện chưa đọc" toggle
-
-Right panel:
-- Header: customer name + email + "Xem hồ sơ" link
-- Customer context (collapsible sidebar, 200px): last 3 orders with status
-- Message history (infinite scroll upward: load 50 older messages on scroll to top)
-- Admin reply input + "Gửi" button
-- "Quick Reply" buttons: predefined phrases
-- "Gửi thông tin đơn hàng" button → Dialog: select from customer's orders → sends as type 'order_link'
-
-Order link card appearance in chat:
+### 5. VnpayLog Model (for debugging)
+```typescript
+// src/server/db/models/VnpayLog.ts
+{ orderCode: String, type: 'return'|'ipn', query: Object, verified: Boolean, createdAt: Date }
 ```
-┌─────────────────────────────┐
-│ 📦 Đơn hàng #FS1A2B3C       │
-│ Trạng thái: Đang giao hàng  │
-│ Tổng: 450,000đ              │
-│ [Xem chi tiết →]            │
-└─────────────────────────────┘
-```
-
-### 6. Unread badge in Admin Sidebar
-Listen to `chat:new_message` in admin layout → increment `useNotificationStore.chatUnread`.
-Display badge on "Chat" sidebar item.
+Log ALL VNPay interactions regardless of outcome.
 
 ### QUALITY REQUIREMENTS
-- Messages stored in MongoDB (Socket.io is transport only)
-- Load first 50 messages on open, load older on scroll (useInfiniteQuery pattern)
-- Mark messages as read when admin opens the session
-- Timestamps: use `date-fns` formatDistanceToNow (e.g. "5 phút trước"), update every 60s
+- NEVER trust vnp_Amount from VNPay — always verify against your DB order.total
+- Signature verification ALWAYS server-side, never client-side
+- Idempotency: handle duplicate IPN calls gracefully
+- Amount encoding: order.total VND × 100 = vnp_Amount (e.g. 150,000đ → 15000000)
 ```
 
 ---
 
+## PROMPT 7.2 — Email Notifications with Resend
+
+```
+Context: Orders, VNPay complete. Phase 7 Step 2: email system.
+
+## TASK: Transactional email with Resend
+
+### 1. Email utility (`src/lib/email.ts`)
+```typescript
+import { Resend } from 'resend'
+const resend = new Resend(process.env.RESEND_API_KEY)
+
+export async function sendEmail(to: string, subject: string, html: string): Promise<void> {
+  try {
+    await resend.emails.send({
+      from: 'Cửa hàng Fashion <noreply@yourstore.com>',
+      to, subject, html
+    })
+  } catch (error) {
+    console.error('[Email Error]', error) // Never throw — email failure should not break flow
+  }
+}
+```
+
+### 2. HTML email templates (inline CSS only, no Tailwind)
+Create as functions returning HTML strings:
+
+`orderConfirmedTemplate(data: { customerName, orderCode, items, total, shippingAddress, paymentMethod }): string`
+- Clean table layout
+- Store logo (Cloudinary URL)
+- Order items table with images, names, prices
+- Price breakdown
+- "Theo dõi đơn hàng" CTA button linking to `{NEXT_PUBLIC_APP_URL}/orders/{orderId}`
+
+`orderStatusTemplate(data: { customerName, orderCode, status, message }): string`
+- Status-specific color header: shipping=blue (#3B82F6), delivered=green (#22C55E)
+- Status icon + message
+- For delivered: "Đánh giá ngay" CTA button
+
+`passwordResetTemplate(data: { customerName, resetUrl }): string`
+- Reset link with 1-hour expiry notice
+- Security note: "Nếu bạn không yêu cầu..."
+
+### 3. Trigger points
+In order.create (after successful transaction):
+```typescript
+// Fire and forget — don't await
+sendEmail(user.email, `Xác nhận đơn hàng #${order.orderCode}`, orderConfirmedTemplate({...}))
+```
+
+In order.updateStatus:
+- status === 'shipping': send orderStatusTemplate
+- status === 'delivered': send orderStatusTemplate
+
+### 4. Password Reset Flow
+- `src/app/(store)/forgot-password/page.tsx`: email input
+- `POST /api/auth/forgot-password`: generate token with `crypto.randomBytes(32).toString('hex')`,
+  hash with SHA256, store in User (resetToken, resetTokenExpiry: Date.now() + 3600000),
+  send passwordResetTemplate
+- `src/app/(store)/reset-password/page.tsx?token=...`: new password form
+- `POST /api/auth/reset-password`: verify token hash, update password, clear token fields
+
+### QUALITY REQUIREMENTS
+- Always fire-and-forget email sends (no await in main request flow)
+- HTML emails: test with tables for Outlook compat
+- Reset token: store hashed (SHA256) in DB, compare with hash of incoming token
+```
+
 ---
+
+## PROMPT 7.3 — SEO, Performance & Production Readiness
+
+```
+Context: All features complete (Phase 1-7). Final polish.
+
+## TASK: Performance, SEO, security, and production prep
+
+### 1. Next.js 16 Metadata & SEO
+Product detail page — full metadata:
+```typescript
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const product = await getProductBySlug(slug)
+  return {
+    title: product.seoTitle || `${product.name} | Fashion Store`,
+    description: product.seoDescription || product.description.slice(0, 160),
+    openGraph: {
+      images: [{ url: product.images[0], width: 800, height: 800, alt: product.name }]
+    }
+  }
+}
+```
+
+Sitemap (`src/app/sitemap.ts`):
+- Static routes: /, /products, /login, /register
+- Dynamic: all published product slugs + category slugs
+
+Robots (`src/app/robots.ts`): disallow /admin, /api, /checkout, /orders
+
+JSON-LD in product page:
+```typescript
+<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": product.name,
+  "image": product.images,
+  "offers": { "@type": "Offer", "price": product.salePrice || product.price, "priceCurrency": "VND" }
+}) }} />
+```
+
+### 2. Next.js 16 Cache Components (new in v16)
+Use the new `use cache` directive for expensive queries:
+```typescript
+// In server components that fetch product data:
+'use cache'
+import { cacheTag } from 'next/cache'
+export async function getFeaturedProducts() {
+  cacheTag('featured-products')
+  return await Product.find({ isFeatured: true, isPublished: true }).lean()
+}
+// Invalidate cache from admin when products update:
+import { revalidateTag } from 'next/cache'
+revalidateTag('featured-products')
+```
+
+### 3. Image optimization
+- All `next/image` must have explicit `sizes` prop:
+  ```tsx
+  <Image sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw" ... />
+  ```
+- Use `priority` only on LCP images (hero, first product row)
+- Configure allowed Cloudinary domain in `next.config.ts`
+
+### 4. Security
+Rate limiting (use `@upstash/ratelimit` + Redis, or simple in-memory for dev):
+- `/api/auth/` routes: 5 req/min per IP
+- `/api/vnpay/`: 20 req/min per IP
+
+Security headers in `next.config.ts`:
+```typescript
+headers: async () => [{
+  source: '/(.*)',
+  headers: [
+    { key: 'X-Frame-Options', value: 'DENY' },
+    { key: 'X-Content-Type-Options', value: 'nosniff' },
+    { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' }
+  ]
+}]
+```
+
+Input sanitization: use `dompurify` (server-side: `isomorphic-dompurify`) on any HTML content
+stored in MongoDB (product description, review comments).
+
+### 5. Error handling audit
+Every page needs: `loading.tsx` (skeleton) + `error.tsx` (error boundary + retry button).
+Every mutation: try/catch with `toast.error` on failure.
+tRPC: all procedures wrap in try/catch with TRPCError codes.
+
+### 6. Seed Script (`scripts/seed.ts`)
+```typescript
+// Run: npx ts-node --esm scripts/seed.ts
+// Creates:
+// - 1 admin: admin@fashionstore.vn / Admin@123456
+// - 5 categories
+// - 20 products with variants and placeholder Cloudinary images
+// - 10 customers with order history
+// - 3 coupons: SALE10 (10%), NEWUSER (50,000đ fixed), FREESHIP (free shipping)
+// - Store settings defaults
+```
+
+### 7. Docker + deployment config
+`Dockerfile` for custom server (Socket.io requirement):
+```dockerfile
+FROM node:22-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --production
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["node", "server.js"]
+```
+
+`docker-compose.yml`: app + mongodb (for local dev)
+
+Health check: `GET /api/health` → `{ status: 'ok', db: 'connected', timestamp: ISO_STRING }`
+
+### README.md must include:
+- Prerequisites: Node 22 LTS, MongoDB 7.0+
+- Installation steps
+- Environment variables guide (with VNPay sandbox setup instructions)
+- Deployment guide (Railway/Render/VPS)
+
+### QUALITY REQUIREMENTS
+- TypeScript: zero errors, zero `any`
+- Lighthouse score target: Performance ≥ 90, SEO = 100, Accessibility ≥ 90 (mobile)
+- All API routes return proper HTTP status codes
+- All console.log removed in production (use conditional `if (process.env.NODE_ENV !== 'production')`)
+```
