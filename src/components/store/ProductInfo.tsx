@@ -7,7 +7,7 @@ import { Star, Minus, Plus, Ruler, Heart, ShieldCheck, Truck, Check } from "luci
 import { useCartStore } from "@/stores/useCartStore";
 import { useUIStore } from "@/stores/useUIStore";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -194,6 +194,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
             </DialogTrigger>
             <DialogContent>
                <DialogTitle>Bảng Kích Thước (Size Chart)</DialogTitle>
+               <DialogDescription className="sr-only">Bảng kích thước chuẩn của cửa hàng</DialogDescription>
                <div className="overflow-x-auto mt-4">
                  <table className="w-full text-sm text-left border-collapse">
                     <thead className="bg-slate-50 text-slate-600">

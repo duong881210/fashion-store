@@ -12,9 +12,6 @@ export const metadata: Metadata = {
   description: "Trải nghiệm mua sắm thời trang nam cao cấp, phong cách lịch lãm, hiện đại và trẻ trung.",
 };
 
-// Next 16 static revalidation (ISR)
-export const revalidate = 3600;
-
 export default function StoreHomepage() {
   return (
     <div className="flex flex-col w-full bg-white">

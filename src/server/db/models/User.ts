@@ -22,6 +22,8 @@ export interface IUser extends Document {
   addresses: mongoose.Types.DocumentArray<IAddress>;
   wishlist: mongoose.Types.ObjectId[];
   isActive: boolean;
+  resetToken?: string;
+  resetTokenExpiry?: Date;
   comparePassword(candidate: string): Promise<boolean>;
 }
 
@@ -44,7 +46,9 @@ const UserSchema = new Schema<IUser>({
   role: { type: String, enum: ['customer', 'admin'], default: 'customer' },
   addresses: [AddressSchema],
   wishlist: [{ type: Schema.Types.ObjectId, ref: 'Product' }],
-  isActive: { type: Boolean, default: true }
+  isActive: { type: Boolean, default: true },
+  resetToken: { type: String },
+  resetTokenExpiry: { type: Date }
 }, {
   timestamps: true
 });

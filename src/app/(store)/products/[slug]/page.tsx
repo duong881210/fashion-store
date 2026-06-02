@@ -1,17 +1,13 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
-import { appRouter } from "@/server/trpc";
-import { createTRPCContext } from "@/server/trpc/context";
 import connectDB from "@/server/db";
 import { Product } from "@/server/db/models/Product";
+import { getCachedProductBySlug, getCachedRelatedProducts } from "@/lib/cache";
 
 import { ProductGallery } from "@/components/store/ProductGallery";
 import { ProductInfo } from "@/components/store/ProductInfo";
 import { ProductReviews } from "@/components/store/ProductReviews";
 import { RelatedProducts } from "@/components/store/RelatedProducts";
-
-// Static Incremental Regeneration
-export const revalidate = 3600;
 
 export async function generateStaticParams() {
   await connectDB();
@@ -31,11 +27,10 @@ export async function generateMetadata({
   params: Promise<{ slug: string }> 
 }): Promise<Metadata> {
   const { slug } = await params;
-  const ctx = await createTRPCContext();
-  const caller = typeof appRouter.createCaller === 'function' ? appRouter.createCaller(ctx) : (appRouter as any)(ctx);
   
   try {
-    const product = await caller.product.getBySlug({ slug });
+    const product = await getCachedProductBySlug(slug);
+    if (!product) throw new Error();
     return {
       title: `${product.seoTitle || product.name} | FS Store`,
       description: product.seoDescription || product.description?.substring(0, 160) || "",
@@ -54,22 +49,13 @@ export default async function ProductDetailPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params;
-  const ctx = await createTRPCContext();
-  const caller = typeof appRouter.createCaller === 'function' ? appRouter.createCaller(ctx) : (appRouter as any)(ctx);
 
-  let product;
-  let relatedProducts;
-
-  try {
-    product = await caller.product.getBySlug({ slug });
-    relatedProducts = await caller.product.getAll({ 
-      categorySlug: product.category?.slug, 
-      limit: 9,
-      page: 1
-    });
-  } catch (error) {
+  const product = await getCachedProductBySlug(slug);
+  if (!product) {
     notFound();
   }
+
+  const relatedProducts = await getCachedRelatedProducts(product.category?.slug, product._id.toString(), 9);
 
   // Generate structured data
   const jsonLd = {
@@ -122,7 +108,7 @@ export default async function ProductDetailPage({
       </div>
 
       {/* Exclude the current product from related products */}
-      <RelatedProducts products={relatedProducts.products.filter((p: any) => p._id !== product._id).slice(0, 8)} />
+      <RelatedProducts products={relatedProducts.slice(0, 8)} />
       
       <ProductReviews 
         productId={product._id} 

@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { PackageX, ChevronDown, ChevronUp, MapPin, CreditCard, XCircle, RotateCcw } from "lucide-react";
+import { PackageX, ChevronDown, ChevronUp, MapPin, CreditCard, XCircle, RotateCcw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useCartStore } from "@/stores/useCartStore";
 import { useRouter } from "next/navigation";
@@ -60,6 +60,33 @@ export default function OrdersClient({ initialData }: { initialData: { orders: a
     });
     toast.success("Đã thêm các sản phẩm vào giỏ hàng");
     router.push('/cart');
+  };
+
+  const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
+
+  const handlePayment = async (orderId: string) => {
+    setPayingOrderId(orderId);
+    toast.info("Đang chuyển hướng đến cổng thanh toán VNPay...");
+    try {
+      const res = await fetch("/api/vnpay/create-payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ orderId }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || "Lỗi kết nối cổng thanh toán");
+      }
+
+      const { paymentUrl } = await res.json();
+      window.location.href = paymentUrl;
+    } catch (error: any) {
+      toast.error(error.message || "Không thể khởi tạo thanh toán VNPay. Vui lòng thử lại sau.");
+      setPayingOrderId(null);
+    }
   };
 
   if (initialData.orders.length === 0) {
@@ -220,13 +247,27 @@ export default function OrdersClient({ initialData }: { initialData: { orders: a
 
                 {/* Actions */}
                 <div className="flex gap-4 justify-end border-t pt-6">
+                  {order.paymentMethod === 'vnpay' && order.paymentStatus === 'unpaid' && order.status === 'pending' && (
+                    <Button 
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white" 
+                      onClick={() => handlePayment(order._id)}
+                      disabled={payingOrderId === order._id}
+                    >
+                      {payingOrderId === order._id ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <CreditCard className="w-4 h-4 mr-2" />
+                      )}
+                      Thanh toán ngay
+                    </Button>
+                  )}
                   {order.status === 'pending' && (
-                    <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700" onClick={() => handleCancel(order._id)}>
+                    <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700" onClick={() => handleCancel(order._id)} disabled={payingOrderId === order._id}>
                       <XCircle className="w-4 h-4 mr-2" />
                       Hủy đơn hàng
                     </Button>
                   )}
-                  <Button variant="outline" className="bg-slate-50 hover:bg-slate-100" onClick={() => handleReorder(order)}>
+                  <Button variant="outline" className="bg-slate-50 hover:bg-slate-100" onClick={() => handleReorder(order)} disabled={payingOrderId === order._id}>
                     <RotateCcw className="w-4 h-4 mr-2" />
                     Mua lại đơn này
                   </Button>

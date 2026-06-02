@@ -61,7 +61,7 @@ export default function Footer() {
       </div>
 
       <div className="container mx-auto px-4 mt-12 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center text-sm text-foreground/60">
-        <p>&copy; {new Date().getFullYear()} Fashion Store. Đã bảo lưu mọi quyền.</p>
+        <p>&copy; 2026 Fashion Store. Đã bảo lưu mọi quyền.</p>
         <div className="flex items-center space-x-4 mt-4 md:mt-0">
           <CreditCard className="h-6 w-6" />
           {/* Add more payment badges here if needed */}

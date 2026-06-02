@@ -8,6 +8,7 @@ import { auth } from '@/auth';
 import { SocketProvider } from '@/components/providers/SocketProvider';
 import { ClientNotificationListener } from '@/components/store/ClientNotificationListener';
 import { ChatWidget } from '@/components/store/ChatWidget';
+import { Suspense } from 'react';
 
 const playfairDisplay = Playfair_Display({
   subsets: ['latin'],
@@ -24,26 +25,35 @@ export const metadata: Metadata = {
   description: 'Your one-stop shop for the latest fashion trends.',
 };
 
-export default async function RootLayout({
+async function SessionWrapper({ children }: { children: React.ReactNode }) {
+  const session = await auth();
+  return (
+    <SessionProvider session={session}>
+      {children}
+    </SessionProvider>
+  );
+}
+
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await auth();
-  
   return (
     <html lang="en" className={`${playfairDisplay.variable} ${dmSans.variable}`}>
       <body>
-        <SessionProvider session={session}>
-          <SocketProvider>
-            <TRPCProvider>
-              {children}
-              <ClientNotificationListener />
-              <ChatWidget />
-              <Toaster />
-            </TRPCProvider>
-          </SocketProvider>
-        </SessionProvider>
+        <Suspense fallback={null}>
+          <SessionWrapper>
+            <SocketProvider>
+              <TRPCProvider>
+                {children}
+                <ClientNotificationListener />
+                <ChatWidget />
+                <Toaster />
+              </TRPCProvider>
+            </SocketProvider>
+          </SessionWrapper>
+        </Suspense>
       </body>
     </html>
   );

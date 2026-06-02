@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
 import useEmblaCarousel from "embla-carousel-react";
-import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 export function ProductGallery({ images }: { images: string[] }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -89,6 +89,7 @@ export function ProductGallery({ images }: { images: string[] }) {
           </DialogTrigger>
           <DialogContent className="max-w-[90vw] md:max-w-4xl p-0 overflow-hidden bg-transparent border-0 shadow-none">
             <DialogTitle className="sr-only">Phóng to hình ảnh</DialogTitle>
+            <DialogDescription className="sr-only">Hình ảnh chi tiết của sản phẩm</DialogDescription>
             <div className="relative w-full h-[85vh]">
               <Image src={images[selectedIndex]} alt="Zoomed view" fill className="object-contain" />
             </div>

@@ -6,7 +6,21 @@ import { Order } from '../../db/models/Order';
 import { Cart } from '../../db/models/Cart';
 import { Product } from '../../db/models/Product';
 import { Coupon } from '../../db/models/Coupon';
+import { User } from '../../db/models/User';
 import connectDB from '../../db';
+import { sendEmail, orderConfirmedTemplate, orderStatusTemplate } from '@/lib/email';
+import { revalidateTag } from 'next/cache';
+
+function invalidateProductCaches() {
+  try {
+    revalidateTag('featured-products', 'default');
+    revalidateTag('new-arrivals', 'default');
+    revalidateTag('best-sellers', 'default');
+    revalidateTag('product-details', 'default');
+  } catch (e) {
+    console.error('Failed to invalidate tags:', e);
+  }
+}
 
 export const orderRouter = router({
   create: protectedProcedure
@@ -37,7 +51,7 @@ export const orderRouter = router({
 
       try {
         let subtotal = 0;
-        const orderItems = [];
+        const orderItems: any[] = [];
 
         for (const item of cart.items) {
           // decrement stock atomically and check if stock is sufficient
@@ -137,6 +151,31 @@ export const orderRouter = router({
 
         await session.commitTransaction();
         session.endSession();
+        invalidateProductCaches();
+
+        // Send order confirmation email (fire-and-forget)
+        User.findById(userId).then((user) => {
+          if (user && user.email) {
+            sendEmail(
+              user.email,
+              `Xác nhận đơn hàng #${order.orderCode} | Fashion Store`,
+              orderConfirmedTemplate({
+                customerName: input.shippingAddress.fullName,
+                orderCode: order.orderCode,
+                orderId: order._id.toString(),
+                items: orderItems,
+                subtotal,
+                shippingFee,
+                discount,
+                total,
+                shippingAddress: input.shippingAddress,
+                paymentMethod: input.paymentMethod,
+              })
+            );
+          }
+        }).catch((err) => {
+          console.error('[Email Trigger Error in Order Creation]', err);
+        });
 
         // Emit new order to admin
         ctx.io?.to('admin_room').emit('order:new', {
@@ -253,6 +292,7 @@ export const orderRouter = router({
 
         await session.commitTransaction();
         session.endSession();
+        invalidateProductCaches();
 
         return JSON.parse(JSON.stringify(order));
       } catch (error: any) {
@@ -314,6 +354,8 @@ export const orderRouter = router({
       const order = await Order.findById(input.id);
       if (!order) throw new TRPCError({ code: 'NOT_FOUND' });
       
+      const oldStatus = order.status;
+
       if (input.status && order.status !== input.status) {
         order.status = input.status;
       }
@@ -323,6 +365,31 @@ export const orderRouter = router({
       }
       
       await order.save();
+
+      // Send status update email on transitions to shipping or delivered (fire-and-forget)
+      if (input.status && oldStatus !== input.status && (input.status === 'shipping' || input.status === 'delivered')) {
+        const message = input.status === 'shipping'
+          ? `Đơn hàng ${order.orderCode} của bạn đang được giao.`
+          : `Đơn hàng ${order.orderCode} đã giao thành công. Cảm ơn bạn đã tin dùng sản phẩm của Fashion Store!`;
+
+        User.findById(order.customer).then((user) => {
+          if (user && user.email) {
+            sendEmail(
+              user.email,
+              `Cập nhật trạng thái đơn hàng #${order.orderCode} | Fashion Store`,
+              orderStatusTemplate({
+                customerName: order.shippingAddress.fullName,
+                orderCode: order.orderCode,
+                orderId: order._id.toString(),
+                status: input.status,
+                message,
+              })
+            );
+          }
+        }).catch((err) => {
+          console.error('[Email Trigger Error in Order Status Update]', err);
+        });
+      }
 
       // Emit status update to customer
       if (input.status) {

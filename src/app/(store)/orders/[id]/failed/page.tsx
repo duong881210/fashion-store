@@ -2,7 +2,8 @@ import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { XCircle, RefreshCcw, ArrowLeft } from 'lucide-react';
+import { XCircle, ArrowLeft } from 'lucide-react';
+import RetryPaymentButton from './RetryPaymentButton';
 
 export const metadata = {
   title: 'Đặt hàng thất bại | FS Store'
@@ -53,12 +54,7 @@ export default async function OrderFailedPage({
               Về giỏ hàng
             </Link>
           </Button>
-          <Button size="lg" asChild className="h-14 px-8 bg-slate-900 hover:bg-slate-800 text-white">
-            <Link href="/checkout">
-              <RefreshCcw className="mr-2 h-5 w-5" />
-              Thử lại thanh toán
-            </Link>
-          </Button>
+          <RetryPaymentButton orderId={id} />
         </div>
       </div>
     </div>

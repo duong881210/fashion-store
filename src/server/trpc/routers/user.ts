@@ -47,11 +47,11 @@ export const userRouter = router({
   getProfile: protectedProcedure
     .query(async ({ ctx }) => {
       await connectDB();
-      const user = await User.findById(ctx.session.user.id).select('-password');
+      const user = await User.findById(ctx.session.user.id).select('-password').lean();
       if (!user) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
       }
-      return user;
+      return JSON.parse(JSON.stringify(user));
     }),
 
   getWishlist: protectedProcedure

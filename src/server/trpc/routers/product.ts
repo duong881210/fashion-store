@@ -13,6 +13,20 @@ import {
 } from '../schemas/product.schema';
 import { z } from 'zod/v4';
 import { v2 as cloudinary } from 'cloudinary';
+import DOMPurify from 'isomorphic-dompurify';
+import { revalidateTag } from 'next/cache';
+import { getCachedFeatured, getCachedNewArrivals, getCachedBestSellers } from '@/lib/cache';
+
+function invalidateProductCaches() {
+  try {
+    revalidateTag('featured-products', 'default');
+    revalidateTag('new-arrivals', 'default');
+    revalidateTag('best-sellers', 'default');
+    revalidateTag('product-details', 'default');
+  } catch (e) {
+    console.error('Failed to invalidate tags:', e);
+  }
+}
 
 export const productRouter = router({
   getAll: publicProcedure
@@ -86,36 +100,40 @@ export const productRouter = router({
   getFeatured: publicProcedure
     .input(z.object({ limit: z.number().optional().default(8) }))
     .query(async ({ input }) => {
-      await connectDB();
-      const products = await Product.find({ isPublished: true, isFeatured: true })
-        .limit(input.limit)
-        .populate('category', 'name slug')
-        .lean<IProduct[]>();
-      return JSON.parse(JSON.stringify(products));
+      try {
+        return await getCachedFeatured(input.limit);
+      } catch (error: any) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to fetch featured products',
+        });
+      }
     }),
 
   getNewArrivals: publicProcedure
     .input(z.object({ limit: z.number().optional().default(8) }))
     .query(async ({ input }) => {
-      await connectDB();
-      const products = await Product.find({ isPublished: true })
-        .sort({ createdAt: -1 })
-        .limit(input.limit)
-        .populate('category', 'name slug')
-        .lean<IProduct[]>();
-      return JSON.parse(JSON.stringify(products));
+      try {
+        return await getCachedNewArrivals(input.limit);
+      } catch (error: any) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to fetch new arrivals',
+        });
+      }
     }),
 
   getBestSellers: publicProcedure
     .input(z.object({ limit: z.number().optional().default(8) }))
     .query(async ({ input }) => {
-      await connectDB();
-      const products = await Product.find({ isPublished: true })
-        .sort({ sold: -1 })
-        .limit(input.limit)
-        .populate('category', 'name slug')
-        .lean<IProduct[]>();
-      return JSON.parse(JSON.stringify(products));
+      try {
+        return await getCachedBestSellers(input.limit);
+      } catch (error: any) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to fetch best sellers',
+        });
+      }
     }),
 
   search: publicProcedure
@@ -137,101 +155,161 @@ export const productRouter = router({
   create: adminProcedure
     .input(createProductSchema)
     .mutation(async ({ input }) => {
-      await connectDB();
-      const product = await Product.create(input as any);
-      return product.toObject();
+      try {
+        await connectDB();
+        if (input.description) {
+          input.description = DOMPurify.sanitize(input.description);
+        }
+        const product = await Product.create(input as any);
+        invalidateProductCaches();
+        return product.toObject();
+      } catch (error: any) {
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: error.message || 'Failed to create product',
+        });
+      }
     }),
 
   update: adminProcedure
     .input(updateProductSchema)
     .mutation(async ({ input }) => {
-      await connectDB();
-      const { id, ...data } = input;
-      const product = await Product.findByIdAndUpdate(id, { $set: data }, { new: true });
-      if (!product) throw new TRPCError({ code: 'NOT_FOUND' });
-      return product.toObject();
+      try {
+        await connectDB();
+        const { id, ...data } = input;
+        if (data.description) {
+          data.description = DOMPurify.sanitize(data.description);
+        }
+        const product = await Product.findByIdAndUpdate(id, { $set: data }, { new: true });
+        if (!product) throw new TRPCError({ code: 'NOT_FOUND', message: 'Product not found' });
+        invalidateProductCaches();
+        return product.toObject();
+      } catch (error: any) {
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: error.message || 'Failed to update product',
+        });
+      }
     }),
 
   softDelete: adminProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
-      await connectDB();
-      const product = await Product.findByIdAndUpdate(input.id, { 
-        $set: { isPublished: false, deletedAt: new Date() } 
-      }, { new: true });
-      if (!product) throw new TRPCError({ code: 'NOT_FOUND' });
-      return true;
+      try {
+        await connectDB();
+        const product = await Product.findByIdAndUpdate(input.id, { 
+          $set: { isPublished: false, deletedAt: new Date() } 
+        }, { new: true });
+        if (!product) throw new TRPCError({ code: 'NOT_FOUND', message: 'Product not found' });
+        invalidateProductCaches();
+        return true;
+      } catch (error: any) {
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: error.message || 'Failed to soft delete product',
+        });
+      }
     }),
 
   hardDelete: adminProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
-      await connectDB();
-      const product = await Product.findById(input.id);
-      if (!product) throw new TRPCError({ code: 'NOT_FOUND' });
+      try {
+        await connectDB();
+        const product = await Product.findById(input.id);
+        if (!product) throw new TRPCError({ code: 'NOT_FOUND', message: 'Product not found' });
 
-      if (product.images && product.images.length > 0) {
-        for (const imgUrl of product.images) {
-          try {
-            const parts = imgUrl.split('/');
-            const filename = parts[parts.length - 1];
-            const publicId = filename.split('.')[0];
-            await cloudinary.uploader.destroy(publicId);
-          } catch (e) {
-            console.error('Failed to delete from Cloudinary:', e);
+        if (product.images && product.images.length > 0) {
+          for (const imgUrl of product.images) {
+            try {
+              const parts = imgUrl.split('/');
+              const filename = parts[parts.length - 1];
+              const publicId = filename.split('.')[0];
+              await cloudinary.uploader.destroy(publicId);
+            } catch (e) {
+              console.error('Failed to delete from Cloudinary:', e);
+            }
           }
         }
-      }
 
-      await Product.findByIdAndDelete(input.id);
-      return true;
+        await Product.findByIdAndDelete(input.id);
+        invalidateProductCaches();
+        return true;
+      } catch (error: any) {
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to hard delete product',
+        });
+      }
     }),
 
   updateVariantStock: adminProcedure
     .input(updateVariantStockSchema)
     .mutation(async ({ input }) => {
-      await connectDB();
-      const product = await Product.findById(input.productId);
-      if (!product) throw new TRPCError({ code: 'NOT_FOUND' });
+      try {
+        await connectDB();
+        const product = await Product.findById(input.productId);
+        if (!product) throw new TRPCError({ code: 'NOT_FOUND', message: 'Product not found' });
 
-      const variant = product.variants.find(v => v.color === input.color);
-      if (!variant) throw new TRPCError({ code: 'NOT_FOUND', message: 'Color not found' });
+        const variant = product.variants.find(v => v.color === input.color);
+        if (!variant) throw new TRPCError({ code: 'NOT_FOUND', message: 'Color not found' });
 
-      const sizeObj = variant.sizes.find(s => s.size === input.size);
-      if (!sizeObj) throw new TRPCError({ code: 'NOT_FOUND', message: 'Size not found' });
+        const sizeObj = variant.sizes.find(s => s.size === input.size);
+        if (!sizeObj) throw new TRPCError({ code: 'NOT_FOUND', message: 'Size not found' });
 
-      sizeObj.stock = input.newStock;
-      await product.save();
-      return product.toObject();
+        sizeObj.stock = input.newStock;
+        await product.save();
+        invalidateProductCaches();
+        return product.toObject();
+      } catch (error: any) {
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: error.message || 'Failed to update stock',
+        });
+      }
     }),
 
   bulkAction: adminProcedure
     .input(bulkActionSchema)
     .mutation(async ({ input }) => {
-      await connectDB();
-      if (input.action === 'publish') {
-        await Product.updateMany({ _id: { $in: input.ids } }, { $set: { isPublished: true } });
-      } else if (input.action === 'unpublish') {
-        await Product.updateMany({ _id: { $in: input.ids } }, { $set: { isPublished: false } });
-      } else if (input.action === 'delete') {
-         const products = await Product.find({ _id: { $in: input.ids } });
-         for (const p of products) {
-           if (p.images && p.images.length > 0) {
-             for (const imgUrl of p.images) {
-               try {
-                 const parts = imgUrl.split('/');
-                 const filename = parts[parts.length - 1];
-                 const publicId = filename.split('.')[0];
-                 await cloudinary.uploader.destroy(publicId);
-               } catch (e) {
-                 console.error('Failed to delete from Cloudinary:', e);
+      try {
+        await connectDB();
+        if (input.action === 'publish') {
+          await Product.updateMany({ _id: { $in: input.ids } }, { $set: { isPublished: true } });
+        } else if (input.action === 'unpublish') {
+          await Product.updateMany({ _id: { $in: input.ids } }, { $set: { isPublished: false } });
+        } else if (input.action === 'delete') {
+           const products = await Product.find({ _id: { $in: input.ids } });
+           for (const p of products) {
+             if (p.images && p.images.length > 0) {
+               for (const imgUrl of p.images) {
+                 try {
+                   const parts = imgUrl.split('/');
+                   const filename = parts[parts.length - 1];
+                   const publicId = filename.split('.')[0];
+                   await cloudinary.uploader.destroy(publicId);
+                 } catch (e) {
+                   console.error('Failed to delete from Cloudinary:', e);
+                 }
                }
              }
            }
-         }
-         await Product.deleteMany({ _id: { $in: input.ids } });
+           await Product.deleteMany({ _id: { $in: input.ids } });
+        }
+        invalidateProductCaches();
+        return true;
+      } catch (error: any) {
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: error.message || 'Failed to execute bulk action',
+        });
       }
-      return true;
     }),
 
   getLowStockCount: adminProcedure

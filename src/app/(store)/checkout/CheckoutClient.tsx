@@ -37,16 +37,32 @@ export default function CheckoutClient({ profile }: { profile: any }) {
   const [discount, setDiscount] = useState({ value: 0, code: "" });
 
   const createOrder = trpc.order.create.useMutation({
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       clearCart();
       if (data.paymentMethod === "cod") {
         router.push(`/orders/${data.orderId}/success`);
       } else {
-        // Mock VNPay redirect for now
-        toast.success("Chuyển hướng đến VNPay...");
-        setTimeout(() => {
-          router.push(`/orders/${data.orderId}/success`);
-        }, 1500);
+        toast.success("Đang chuyển hướng đến VNPay...");
+        try {
+          const res = await fetch("/api/vnpay/create-payment", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ orderId: data.orderId }),
+          });
+
+          if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.message || "Lỗi khởi tạo cổng thanh toán");
+          }
+
+          const { paymentUrl } = await res.json();
+          window.location.href = paymentUrl;
+        } catch (error: any) {
+          toast.error(error.message || "Không thể khởi tạo thanh toán VNPay");
+          router.push(`/orders/${data.orderId}/failed?reason=${encodeURIComponent(error.message || "Lỗi khởi tạo thanh toán")}`);
+        }
       }
     },
     onError: (error) => {
