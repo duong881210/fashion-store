@@ -9,9 +9,9 @@ dotenv.config();
 // --- SAMPLE CATEGORY DATA ---
 const categories = [
   { name: 'Áo Thun', slug: 'ao-thun', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab' },
-  { name: 'Áo Khoác', slug: 'ao-khoac', image: 'https://images.unsplash.com/photo-1550614000-4b95d4ed79ea' },
+  { name: 'Áo Khoác', slug: 'ao-khoac', image: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea' },
   { name: 'Quần Jeans', slug: 'quan-jeans', image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246' },
-  { name: 'Áo Sơ Mi', slug: 'ao-so-mi', image: 'https://images.unsplash.com/photo-1596755094514-f87e32f6b717' },
+  { name: 'Áo Sơ Mi', slug: 'ao-so-mi', image: 'https://images.unsplash.com/photo-1620012253295-c05518e993be' },
   { name: 'Phụ Kiện', slug: 'phu-kien', image: 'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f' }
 ];
 
@@ -26,9 +26,9 @@ const generateProducts = (categoryIds: any[]) => {
   ];
   const imagesList = [
     ["https://images.unsplash.com/photo-1521572163474-6864f9cf17ab", "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a"],
-    ["https://images.unsplash.com/photo-1550614000-4b95d4ed79ea", "https://images.unsplash.com/photo-1551028719-00167b16eac5"],
+    ["https://images.unsplash.com/photo-1591047139829-d91aecb6caea", "https://images.unsplash.com/photo-1551028719-00167b16eac5"],
     ["https://images.unsplash.com/photo-1541099649105-f69ad21f3246", "https://images.unsplash.com/photo-1475178626620-a4d074967452"],
-    ["https://images.unsplash.com/photo-1596755094514-f87e32f6b717", "https://images.unsplash.com/photo-1602810318383-e386cc2a3ce3"],
+    ["https://images.unsplash.com/photo-1620012253295-c05518e993be", "https://images.unsplash.com/photo-1602810318383-e386cc2a3ce3"],
     ["https://images.unsplash.com/photo-1511499767150-a48a237f0083", "https://images.unsplash.com/photo-1572635196237-14b3f281503f"],
     ["https://images.unsplash.com/photo-1516257984-b1b4d707412e", "https://images.unsplash.com/photo-1556821840-3a63f95609a7"],
     ["https://images.unsplash.com/photo-1617137984095-74e4e5e3613f", "https://images.unsplash.com/photo-1559551409-dadc959f76b8"]

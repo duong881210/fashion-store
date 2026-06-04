@@ -25,8 +25,8 @@ export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/';
-  const urlError = searchParams.get('error') === 'OAuthAccountNotLinked' 
-    ? 'Email đã được sử dụng với nhà cung cấp khác' 
+  const urlError = searchParams.get('error') === 'OAuthAccountNotLinked'
+    ? 'Email đã được sử dụng với nhà cung cấp khác'
     : searchParams.get('error');
 
   const [showPassword, setShowPassword] = useState(false);
@@ -44,14 +44,14 @@ export default function LoginForm() {
   const onSubmit = async (values: LoginFormValues) => {
     setError(null);
     setIsPending(true);
-    
+
     try {
       const result = await signIn('credentials', {
         redirect: false,
         email: values.email,
         password: values.password,
       });
-      
+
       if (result?.error) {
         setError('Email hoặc mật khẩu không hợp lệ');
         setIsPending(false);
@@ -108,10 +108,10 @@ export default function LoginForm() {
                 </div>
                 <FormControl>
                   <div className="relative">
-                    <Input 
-                      placeholder="••••••••" 
-                      type={showPassword ? 'text' : 'password'} 
-                      {...field} 
+                    <Input
+                      placeholder="••••••••"
+                      type={showPassword ? 'text' : 'password'}
+                      {...field}
                       disabled={isPending}
                     />
                     <button
@@ -123,6 +123,14 @@ export default function LoginForm() {
                     </button>
                   </div>
                 </FormControl>
+                <div className="flex justify-end">
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm font-medium text-gray-600 hover:text-black hover:underline"
+                  >
+                    Quên mật khẩu?
+                  </Link>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
@@ -142,10 +150,10 @@ export default function LoginForm() {
         </div>
       </div>
 
-      <Button 
-        variant="outline" 
-        type="button" 
-        className="w-full" 
+      <Button
+        variant="outline"
+        type="button"
+        className="w-full"
         onClick={onGoogleSignIn}
         disabled={isPending}
       >

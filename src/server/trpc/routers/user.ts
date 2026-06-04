@@ -4,6 +4,7 @@ import { User, IUser } from '../../db/models/User';
 import { Order } from '../../db/models/Order';
 import connectDB from '../../db';
 import { TRPCError } from '@trpc/server';
+import { sendEmail, welcomeEmailTemplate } from '@/lib/email';
 import {
   registerSchema,
   updateProfileSchema,
@@ -37,6 +38,13 @@ export const userRouter = router({
         password: input.password,
         role: 'customer',
       });
+
+      // Send welcome email (fire-and-forget)
+      sendEmail(
+        user.email,
+        'Chào mừng bạn đến với Fashion Store!',
+        welcomeEmailTemplate({ customerName: user.name })
+      ).catch((err) => console.error('[Email Trigger Error in Registration]', err));
 
       const userObj = user.toObject();
       delete userObj.password;

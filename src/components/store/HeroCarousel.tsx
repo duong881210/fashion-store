@@ -18,7 +18,7 @@ export function HeroCarousel() {
       subtitle: "Bộ Sưu Tập Thu Đông", 
       cta: "Khám Phá Ngay", 
       link: "/products", 
-      image: "https://images.unsplash.com/photo-1550614000-4b95d4ed79ea" 
+      image: "https://images.unsplash.com/photo-1617137968427-85924c800a22" 
     },
     { 
       id: 2, 
@@ -26,7 +26,7 @@ export function HeroCarousel() {
       subtitle: "Casual Minimalist", 
       cta: "Xem Sản Phẩm", 
       link: "/products", 
-      image: "https://images.unsplash.com/photo-1489987707023-afc8c1ce9f28" 
+      image: "https://images.unsplash.com/photo-1488161628813-04466f872be2" 
     },
     { 
       id: 3, 

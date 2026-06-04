@@ -20,7 +20,7 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
 
   try {
     await resend.emails.send({
-      from: 'Cửa hàng Fashion <noreply@resend.dev>', // Resend sandbox default sender
+      from: 'Cửa hàng Fashion <onboarding@resend.dev>', // Resend sandbox default sender
       to,
       subject,
       html,
@@ -263,3 +263,48 @@ export function passwordResetTemplate(data: {
     </div>
   `;
 }
+
+/**
+ * HTML Email template for welcome email
+ */
+export function welcomeEmailTemplate(data: {
+  customerName: string;
+}): string {
+  return `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff; color: #334155;">
+      <!-- Logo Header -->
+      <div style="text-align: center; padding-bottom: 20px; border-bottom: 2px solid #f1f5f9;">
+        <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; color: #0f172a;">FASHION STORE</h1>
+      </div>
+
+      <!-- Welcome Body -->
+      <div style="padding: 25px 10px 10px 10px;">
+        <h2 style="margin-top: 0; font-size: 22px; color: #0f172a; text-align: center;">Chào mừng bạn đến với Fashion Store!</h2>
+        <p style="line-height: 1.6; color: #475569; font-size: 15px;">Xin chào <strong>${data.customerName}</strong>,</p>
+        <p style="line-height: 1.6; color: #475569; font-size: 15px;">Chúng tôi rất vui mừng khi bạn tham gia cùng chúng tôi. Tài khoản của bạn đã được thiết lập thành công.</p>
+        
+        <div style="background-color: #f8fafc; border-radius: 12px; padding: 20px; margin: 24px 0; border: 1px solid #f1f5f9;">
+          <h3 style="margin-top: 0; font-size: 16px; color: #0f172a; margin-bottom: 16px;">Đặc quyền thành viên của bạn:</h3>
+          <ul style="padding-left: 20px; margin: 0; color: #475569; line-height: 1.8; font-size: 14px;">
+            <li style="margin-bottom: 10px;">🛍️ <strong>Ưu đãi độc quyền</strong>: Nhận thông báo sớm nhất về các chương trình khuyến mãi và bộ sưu tập mới.</li>
+            <li style="margin-bottom: 10px;">⚡ <strong>Trải nghiệm mua sắm nhanh chóng</strong>: Dễ dàng quản lý giỏ hàng, thông tin giao hàng và lịch sử đơn hàng.</li>
+            <li style="margin-bottom: 0;">💬 <strong>Hỗ trợ trực tuyến 24/7</strong>: Trò chuyện trực tiếp với nhân viên hỗ trợ ngay trên website để được giải đáp mọi thắc mắc.</li>
+          </ul>
+        </div>
+
+        <!-- CTA -->
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}" target="_blank" style="background-color: #0f172a; color: #ffffff; text-decoration: none; padding: 12px 28px; font-weight: 600; border-radius: 8px; font-size: 14px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">Khám phá cửa hàng ngay</a>
+        </div>
+
+        <p style="line-height: 1.6; color: #64748b; font-size: 13px; text-align: center; margin-top: 20px;">Chúc bạn có những trải nghiệm mua sắm tuyệt vời tại Fashion Store!</p>
+      </div>
+
+      <!-- Footer -->
+      <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8;">
+        <p style="margin: 0;">© ${new Date().getFullYear()} Fashion Store. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+}
+

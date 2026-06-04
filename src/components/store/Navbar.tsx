@@ -63,14 +63,6 @@ export default function Navbar() {
           Fashion
         </Link>
 
-        <nav className="hidden md:flex items-center gap-6">
-          <Link href="/collections/new" className="text-sm font-medium hover:text-primary transition-colors">Hàng Mới Về</Link>
-          <Link href="/collections/shirts" className="text-sm font-medium hover:text-primary transition-colors">Áo Sơ Mi</Link>
-          <Link href="/collections/pants" className="text-sm font-medium hover:text-primary transition-colors">Quần</Link>
-          <Link href="/collections/outerwear" className="text-sm font-medium hover:text-primary transition-colors">Áo Khoác</Link>
-          <Link href="/sale" className="text-sm font-medium text-primary transition-colors">Khuyến Mãi</Link>
-        </nav>
-
         {/* Icons */}
         <div className="flex items-center gap-2 md:gap-4">
           <Button variant="ghost" size="icon" className="hidden sm:inline-flex">

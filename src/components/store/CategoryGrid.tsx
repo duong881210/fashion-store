@@ -10,9 +10,9 @@ export async function CategoryGrid() {
   const categories = await caller.category.getAll();
   // Use a fallback image if none provided in the DB
   const defaultImages = [
-    "https://images.unsplash.com/photo-1596755094514-f87e32f6b717",
+    "https://images.unsplash.com/photo-1523381210434-271e8be1f52b",
     "https://images.unsplash.com/photo-1542272604-787c3835535d",
-    "https://images.unsplash.com/photo-1489987707023-afc8c1ce9f28",
+    "https://images.unsplash.com/photo-1488161628813-04466f872be2",
     "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f"
   ];
 

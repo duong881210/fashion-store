@@ -3,6 +3,7 @@ import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 import connectDB from '@/server/db';
 import { User } from '@/server/db/models/User';
+import { sendEmail, welcomeEmailTemplate } from '@/lib/email';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -48,8 +49,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     })
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
+    async jwt({ token, user, account }) {
+      if (account?.provider === 'google' && user?.email) {
+        await connectDB();
+        let dbUser = await User.findOne({ email: user.email });
+        if (!dbUser) {
+          dbUser = await User.create({
+            name: user.name || 'Google User',
+            email: user.email,
+            avatar: user.image || undefined,
+            role: 'customer',
+            isActive: true,
+          });
+
+          // Send welcome email (fire-and-forget)
+          sendEmail(
+            dbUser.email,
+            'Chào mừng bạn đến với Fashion Store!',
+            welcomeEmailTemplate({ customerName: dbUser.name })
+          ).catch((err) => console.error('[Email Trigger Error in Google Sign-In]', err));
+        }
+        token.id = dbUser._id.toString();
+        token.role = dbUser.role;
+      } else if (user) {
         token.id = user.id;
         token.role = user.role;
       }
