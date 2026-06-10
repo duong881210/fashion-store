@@ -23,6 +23,7 @@ async function ProductsContent({ searchParamsPromise }: { searchParamsPromise: P
   const sizes = typeof sp.sizes === "string" ? sp.sizes.split(",") : undefined;
   const colors = typeof sp.colors === "string" ? sp.colors.split(",") : undefined;
   const sort = typeof sp.sort === "string" ? sp.sort : "newest";
+  const search = typeof sp.search === "string" ? sp.search : undefined;
 
   const ctx = await createTRPCContext();
   const caller = typeof appRouter.createCaller === 'function' ? appRouter.createCaller(ctx) : (appRouter as any)(ctx);
@@ -38,12 +39,15 @@ async function ProductsContent({ searchParamsPromise }: { searchParamsPromise: P
       sizes,
       colors,
       sort: sort as any,
+      search,
     }),
   ]);
 
-  const displayTitle = categorySlug 
-    ? categories.find((c: any) => c.slug === categorySlug)?.name || "Sản phẩm"
-    : "Tất cả sản phẩm";
+  const displayTitle = search
+    ? `Kết quả tìm kiếm cho: "${search}"`
+    : categorySlug 
+      ? categories.find((c: any) => c.slug === categorySlug)?.name || "Sản phẩm"
+      : "Tất cả sản phẩm";
 
   return (
     <div className="flex flex-col md:flex-row gap-8 items-start">
@@ -54,6 +58,7 @@ async function ProductsContent({ searchParamsPromise }: { searchParamsPromise: P
 
       {/* Main Product Grid */}
       <main className="flex-1 w-full min-w-0">
+        <h2 className="text-xl md:text-2xl font-bold text-slate-900 mb-4">{displayTitle}</h2>
         <div className="mb-6 flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-100">
            <span className="text-sm font-medium text-slate-600">
              Hiển thị {productData.products.length} trên {productData.totalCount} sản phẩm

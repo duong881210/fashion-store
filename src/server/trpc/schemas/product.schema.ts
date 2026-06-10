@@ -8,7 +8,8 @@ export const getAllProductsPublicSchema = z.object({
   priceMax: z.number().optional(),
   sizes: z.array(z.string()).optional(),
   colors: z.array(z.string()).optional(),
-  sort: z.enum(['newest', 'price_asc', 'price_desc', 'best_seller', 'top_rated']).default('newest')
+  sort: z.enum(['newest', 'price_asc', 'price_desc', 'best_seller', 'top_rated']).default('newest'),
+  search: z.string().optional()
 });
 
 export const productVariantSizeSchema = z.object({

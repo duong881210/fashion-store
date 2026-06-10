@@ -33,10 +33,17 @@ export const productRouter = router({
     .input(getAllProductsPublicSchema)
     .query(async ({ input }) => {
       await connectDB();
-      const { page, limit, categorySlug, priceMin, priceMax, sizes, colors, sort } = input;
+      const { page, limit, categorySlug, priceMin, priceMax, sizes, colors, sort, search } = input;
       const skip = (page - 1) * limit;
 
       const query: any = { isPublished: true };
+
+      if (search) {
+        query.$or = [
+          { name: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } }
+        ];
+      }
 
       if (categorySlug) {
         const category = await Category.findOne({ slug: categorySlug }).lean();
