@@ -9,6 +9,7 @@ import { PackageX, ChevronDown, ChevronUp, MapPin, CreditCard, XCircle, RotateCc
 import { toast } from "sonner";
 import { useCartStore } from "@/stores/useCartStore";
 import { useRouter } from "next/navigation";
+import { RefundRequestDialog } from "./_components/RefundRequestDialog";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
@@ -21,12 +22,14 @@ const statusMap: Record<string, { label: string; color: string }> = {
   shipping: { label: "Đang giao hàng", color: "bg-purple-100 text-purple-800" },
   delivered: { label: "Đã giao thành công", color: "bg-green-100 text-green-800" },
   cancelled: { label: "Đã hủy", color: "bg-red-100 text-red-800" },
-  refunded: { label: "Đã hoàn tiền", color: "bg-slate-100 text-slate-800" }
+  refunded: { label: "Đã hoàn tiền", color: "bg-slate-100 text-slate-800" },
+  refund_requested: { label: "Chờ hoàn tiền", color: "bg-orange-100 text-orange-800" }
 };
 
 export default function OrdersClient({ initialData }: { initialData: { orders: any[]; totalPages: number } }) {
   const router = useRouter();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedRefundOrder, setSelectedRefundOrder] = useState<any | null>(null);
   const { addItem } = useCartStore();
 
   const utils = trpc.useUtils();
@@ -267,6 +270,17 @@ export default function OrdersClient({ initialData }: { initialData: { orders: a
                       Hủy đơn hàng
                     </Button>
                   )}
+                  {order.status === 'delivered' && order.paymentStatus === 'paid' && (
+                    <Button 
+                      variant="outline" 
+                      className="text-amber-600 border-amber-200 hover:bg-amber-50 hover:text-amber-700" 
+                      onClick={() => setSelectedRefundOrder(order)}
+                      disabled={payingOrderId === order._id}
+                    >
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Trả hàng / Hoàn tiền
+                    </Button>
+                  )}
                   <Button variant="outline" className="bg-slate-50 hover:bg-slate-100" onClick={() => handleReorder(order)} disabled={payingOrderId === order._id}>
                     <RotateCcw className="w-4 h-4 mr-2" />
                     Mua lại đơn này
@@ -277,6 +291,14 @@ export default function OrdersClient({ initialData }: { initialData: { orders: a
           </div>
         );
       })}
+      {selectedRefundOrder && (
+        <RefundRequestDialog
+          order={selectedRefundOrder}
+          isOpen={!!selectedRefundOrder}
+          onClose={() => setSelectedRefundOrder(null)}
+          onSuccess={() => utils.order.getMyOrders.invalidate()}
+        />
+      )}
     </div>
   );
 }

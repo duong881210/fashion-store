@@ -1,4 +1,4 @@
-import { VNPay, VnpLocale } from 'vnpay';
+import { VNPay, VnpLocale, ProductCode } from 'vnpay';
 
 const tmnCode = process.env.VNPAY_TMN_CODE || '';
 const secureSecret = process.env.VNPAY_HASH_SECRET || '';
@@ -34,6 +34,7 @@ export function createPaymentUrl(params: CreatePaymentParams): string {
     vnp_IpAddr: params.ipAddr,
     vnp_TxnRef: params.orderId,
     vnp_OrderInfo: params.orderInfo,
+    vnp_OrderType: ProductCode.Fashion,
     vnp_ReturnUrl: params.returnUrl,
     vnp_Locale: params.locale === 'en' ? VnpLocale.EN : VnpLocale.VN,
   });
@@ -75,3 +76,40 @@ export function getTransactionMessage(responseCode: string): string {
 
   return codeMap[responseCode] || `Lỗi không xác định (Mã: ${responseCode})`;
 }
+
+export interface RefundParams {
+  requestId: string;
+  orderId: string; // original orderCode (vnp_TxnRef)
+  amount: number;
+  transactionNo: string;
+  transactionDate: string;
+  ipAddr: string;
+  reason: string;
+  createdBy: string;
+}
+
+export async function processVnpayRefund(params: RefundParams) {
+  try {
+    // VNPay vnp_CreateDate format is yyyyMMddHHmmss as a number
+    const dateStr = new Date().toISOString().replace(/[-T:.Z]/g, '').slice(0, 14);
+    const vnp_CreateDate = parseInt(dateStr);
+    
+    const response = await vnpayClient.refund({
+      vnp_RequestId: params.requestId,
+      vnp_TxnRef: params.orderId,
+      vnp_Amount: params.amount,
+      vnp_TransactionType: '02', // Full refund
+      vnp_TransactionNo: parseInt(params.transactionNo),
+      vnp_TransactionDate: parseInt(params.transactionDate),
+      vnp_CreateBy: params.createdBy,
+      vnp_CreateDate,
+      vnp_IpAddr: params.ipAddr,
+      vnp_OrderInfo: params.reason,
+    });
+    return response;
+  } catch (error) {
+    console.error('[VNPay Refund Integration Error]', error);
+    throw error;
+  }
+}
+

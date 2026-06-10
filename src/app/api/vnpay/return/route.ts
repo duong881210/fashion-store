@@ -64,6 +64,14 @@ export async function GET(req: NextRequest) {
         order.status = 'confirmed'; // Auto-confirm once paid
       }
       
+      // Store transaction details
+      if (vnp_TransactionNo) {
+        order.vnpayTransactionNo = Array.isArray(vnp_TransactionNo) ? vnp_TransactionNo[0] : String(vnp_TransactionNo);
+      }
+      if (query.vnp_PayDate) {
+        order.vnpayPayDate = Array.isArray(query.vnp_PayDate) ? query.vnp_PayDate[0] : String(query.vnp_PayDate);
+      }
+
       // Add timeline entry
       order.timeline.push({
         status: 'paid',

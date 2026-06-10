@@ -10,6 +10,9 @@ import { User } from '../../db/models/User';
 import connectDB from '../../db';
 import { sendEmail, orderConfirmedTemplate, orderStatusTemplate } from '@/lib/email';
 import { revalidateTag } from 'next/cache';
+import { VnpayLog } from '../../db/models/VnpayLog';
+import { RefundRequest } from '../../db/models/RefundRequest';
+import { processVnpayRefund } from '@/lib/vnpay';
 
 function invalidateProductCaches() {
   try {
@@ -446,5 +449,296 @@ export const orderRouter = router({
       const totalOrders = stats.reduce((sum, day) => sum + day.orders, 0);
       
       return { stats, ordersByStatus, totalRevenue, totalOrders };
+    }),
+
+  requestRefund: protectedProcedure
+    .input(z.object({
+      orderId: z.string(),
+      reason: z.string(),
+      description: z.string().optional(),
+      images: z.array(z.string()).default([])
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await connectDB();
+      const userId = ctx.session.user.id;
+      
+      const order = await Order.findById(input.orderId);
+      if (!order) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Không tìm thấy đơn hàng' });
+      }
+
+      if (order.customer.toString() !== userId) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Bạn không có quyền yêu cầu hoàn tiền cho đơn hàng này' });
+      }
+
+      if (order.status !== 'delivered') {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Chỉ có thể yêu cầu hoàn tiền cho đơn hàng đã giao thành công' });
+      }
+
+      if (order.paymentStatus !== 'paid') {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Đơn hàng chưa được thanh toán' });
+      }
+
+      const existingRequest = await RefundRequest.findOne({ order: order._id });
+      if (existingRequest) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Yêu cầu hoàn tiền đã tồn tại cho đơn hàng này' });
+      }
+
+      const session = await mongoose.startSession();
+      session.startTransaction();
+
+      try {
+        const refundRequest = new RefundRequest({
+          order: order._id,
+          customer: userId,
+          reason: input.reason,
+          description: input.description,
+          images: input.images,
+          amount: order.total,
+          status: 'pending'
+        });
+
+        await refundRequest.save({ session });
+
+        order.status = 'refund_requested';
+        order.timeline.push({
+          status: 'refund_requested',
+          timestamp: new Date(),
+          message: `Khách hàng yêu cầu trả hàng / hoàn tiền. Lý do: ${input.reason}`
+        } as any);
+
+        await order.save({ session });
+
+        await session.commitTransaction();
+        session.endSession();
+
+        // Emit to admin room
+        ctx.io?.to('admin_room').emit('refund:new', {
+          requestId: refundRequest._id.toString(),
+          orderCode: order.orderCode,
+          customerName: order.shippingAddress.fullName,
+          amount: order.total,
+          createdAt: new Date().toISOString()
+        });
+
+        return JSON.parse(JSON.stringify(refundRequest));
+      } catch (error: any) {
+        await session.abortTransaction();
+        session.endSession();
+        throw new TRPCError({ code: 'BAD_REQUEST', message: error.message || 'Lỗi khi gửi yêu cầu hoàn tiền' });
+      }
+    }),
+
+  getRefundRequests: adminProcedure
+    .input(z.object({
+      page: z.number().default(1),
+      limit: z.number().default(10),
+      status: z.string().optional()
+    }))
+    .query(async ({ input }) => {
+      await connectDB();
+      const skip = (input.page - 1) * input.limit;
+      const query: any = {};
+
+      if (input.status && input.status !== 'all') {
+        query.status = input.status;
+      }
+
+      const [requests, total] = await Promise.all([
+        RefundRequest.find(query)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(input.limit)
+          .populate('customer', 'name email')
+          .populate('order')
+          .lean(),
+        RefundRequest.countDocuments(query)
+      ]);
+
+      return {
+        requests: JSON.parse(JSON.stringify(requests)),
+        total,
+        totalPages: Math.ceil(total / input.limit)
+      };
+    }),
+
+  resolveRefundRequest: adminProcedure
+    .input(z.object({
+      requestId: z.string(),
+      action: z.enum(['approve', 'reject']),
+      adminComment: z.string().optional()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      await connectDB();
+      const adminId = ctx.session!.user!.id;
+      const adminEmail = ctx.session!.user!.email || 'Admin';
+
+      const request = await RefundRequest.findById(input.requestId)
+        .populate('order')
+        .populate('customer');
+
+      if (!request) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Không tìm thấy yêu cầu hoàn tiền' });
+      }
+
+      if (request.status !== 'pending') {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Yêu cầu này đã được xử lý từ trước' });
+      }
+
+      const order = request.order as any;
+      if (!order) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Không tìm thấy đơn hàng liên quan' });
+      }
+
+      const dbSession = await mongoose.startSession();
+      dbSession.startTransaction();
+
+      try {
+        if (input.action === 'approve') {
+          // If payment was vnpay, process actual refund
+          if (order.paymentMethod === 'vnpay') {
+            let transactionNo = order.vnpayTransactionNo;
+            let payDate = order.vnpayPayDate;
+
+            // Fallback to VnpayLog if missing on order document
+            if (!transactionNo || !payDate) {
+              const log = await VnpayLog.findOne({ 
+                orderCode: order.orderCode, 
+                type: 'return', 
+                verified: true 
+              }).session(dbSession);
+
+              if (log && log.query) {
+                transactionNo = log.query.vnp_TransactionNo;
+                payDate = log.query.vnp_PayDate;
+              }
+            }
+
+            if (!transactionNo || !payDate) {
+              throw new Error('Không tìm thấy thông tin giao dịch VNPay hợp lệ để hoàn tiền tự động. Vui lòng hoàn tiền thủ công.');
+            }
+
+            // Fire VNPay refund
+            const vnpayResponse = await processVnpayRefund({
+              requestId: `RF${Date.now()}`,
+              orderId: order.orderCode,
+              amount: order.total,
+              transactionNo: String(transactionNo),
+              transactionDate: String(payDate),
+              ipAddr: '127.0.0.1', // server ip
+              reason: request.reason || 'Hoan tra don hang',
+              createdBy: adminEmail
+            });
+
+            if (!vnpayResponse.isSuccess) {
+              throw new Error(`Cổng VNPay từ chối yêu cầu hoàn tiền: ${vnpayResponse.message}`);
+            }
+
+            request.vnpayResponse = vnpayResponse;
+          }
+
+          // Approve request
+          request.status = 'approved';
+          request.adminComment = input.adminComment;
+          request.resolvedAt = new Date();
+          request.resolvedBy = adminId as any;
+
+          // Update order status
+          order.status = 'refunded';
+          order.paymentStatus = 'refunded';
+          order.timeline.push({
+            status: 'refunded',
+            timestamp: new Date(),
+            message: `Yêu cầu trả hàng / hoàn tiền đã được phê duyệt. Lý do: ${input.adminComment || 'N/A'}`
+          });
+
+          // Restore product inventory stock
+          for (const item of order.items) {
+            await Product.findOneAndUpdate(
+              { _id: item.product },
+              {
+                $inc: {
+                  'variants.$[v].sizes.$[s].stock': item.quantity,
+                  'sold': -item.quantity
+                }
+              },
+              {
+                arrayFilters: [
+                  { 'v.color': item.color },
+                  { 's.size': item.size }
+                ],
+                session: dbSession
+              }
+            );
+          }
+
+          // Restore coupon if used
+          if (order.coupon) {
+            await Coupon.findByIdAndUpdate(order.coupon, {
+              $inc: { usedCount: -1 },
+              $pull: { usedBy: order.customer }
+            }, { session: dbSession });
+          }
+
+        } else {
+          // Reject request
+          request.status = 'rejected';
+          request.adminComment = input.adminComment;
+          request.resolvedAt = new Date();
+          request.resolvedBy = adminId as any;
+
+          // Revert order status back to delivered
+          order.status = 'delivered';
+          order.timeline.push({
+            status: 'delivered',
+            timestamp: new Date(),
+            message: `Yêu cầu trả hàng / hoàn tiền bị từ chối. Lý do: ${input.adminComment || 'N/A'}`
+          });
+        }
+
+        await request.save({ session: dbSession });
+        await order.save({ session: dbSession });
+
+        await dbSession.commitTransaction();
+        dbSession.endSession();
+        invalidateProductCaches();
+
+        // Emit notifications to customer
+        ctx.io?.to(`user_${order.customer}`).emit('order:status_updated', {
+          orderId: order._id.toString(),
+          orderCode: order.orderCode,
+          newStatus: order.status,
+          message: `Yêu cầu trả hàng của đơn hàng ${order.orderCode} đã được: ${input.action === 'approve' ? 'Phê duyệt' : 'Từ chối'}`
+        });
+
+        // Send confirmation email
+        const user = request.customer as any;
+        if (user && user.email) {
+          const emailSubject = input.action === 'approve'
+            ? `Chấp nhận yêu cầu hoàn tiền #${order.orderCode} | Fashion Store`
+            : `Từ chối yêu cầu hoàn tiền #${order.orderCode} | Fashion Store`;
+          const emailMessage = input.action === 'approve'
+            ? `Yêu cầu hoàn tiền cho đơn hàng ${order.orderCode} đã được phê duyệt thành công. Tiền sẽ được hoàn trả theo phương thức thanh toán của bạn.`
+            : `Yêu cầu hoàn tiền cho đơn hàng ${order.orderCode} đã bị từ chối. Lý do: ${input.adminComment || 'Không có lý do chi tiết'}.`;
+
+          sendEmail(
+            user.email,
+            emailSubject,
+            orderStatusTemplate({
+              customerName: order.shippingAddress.fullName,
+              orderCode: order.orderCode,
+              orderId: order._id.toString(),
+              status: order.status,
+              message: emailMessage,
+            })
+          ).catch(err => console.error('[Email Trigger Error in Resolve Refund]', err));
+        }
+
+        return JSON.parse(JSON.stringify(request));
+      } catch (error: any) {
+        await dbSession.abortTransaction();
+        dbSession.endSession();
+        throw new TRPCError({ code: 'BAD_REQUEST', message: error.message || 'Lỗi khi giải quyết yêu cầu hoàn tiền' });
+      }
     })
 });

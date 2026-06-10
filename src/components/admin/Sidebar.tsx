@@ -10,7 +10,8 @@ import {
   MessageSquare, 
   BarChart3, 
   Settings,
-  ChevronLeft
+  ChevronLeft,
+  RotateCcw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ const navItems = [
   { name: 'Bảng Điều Khiển', href: '/admin', icon: LayoutDashboard },
   { name: 'Sản Phẩm', href: '/admin/products', icon: Package },
   { name: 'Đơn Hàng', href: '/admin/orders', icon: ShoppingCart },
+  { name: 'Hoàn Tiền', href: '/admin/refunds', icon: RotateCcw },
   { name: 'Khách Hàng', href: '/admin/customers', icon: Users },
   { name: 'Trò Chuyện', href: '/admin/chat', icon: MessageSquare, badge: true },
   { name: 'Thống Kê', href: '/admin/analytics', icon: BarChart3 },

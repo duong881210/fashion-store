@@ -24,10 +24,12 @@ export interface IOrder extends Document {
     district: string;
     province: string;
   };
-  status: 'pending' | 'confirmed' | 'processing' | 'shipping' | 'delivered' | 'cancelled' | 'refunded';
+  status: 'pending' | 'confirmed' | 'processing' | 'shipping' | 'delivered' | 'cancelled' | 'refunded' | 'refund_requested';
   paymentStatus: 'unpaid' | 'paid' | 'refunded';
   paymentMethod: 'vnpay' | 'cod';
   timeline: IOrderTimeline[];
+  vnpayTransactionNo?: string;
+  vnpayPayDate?: string;
 }
 
 const OrderItemSchema = new Schema({
@@ -67,7 +69,7 @@ const OrderSchema = new Schema<IOrder>(
     },
     status: { 
       type: String, 
-      enum: ['pending', 'confirmed', 'processing', 'shipping', 'delivered', 'cancelled', 'refunded'],
+      enum: ['pending', 'confirmed', 'processing', 'shipping', 'delivered', 'cancelled', 'refunded', 'refund_requested'],
       default: 'pending'
     },
     paymentStatus: {
@@ -80,6 +82,8 @@ const OrderSchema = new Schema<IOrder>(
       enum: ['vnpay', 'cod'],
       required: true
     },
+    vnpayTransactionNo: { type: String },
+    vnpayPayDate: { type: String },
     timeline: [OrderTimelineSchema]
   },
   {
