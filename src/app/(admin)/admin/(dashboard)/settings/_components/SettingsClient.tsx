@@ -197,7 +197,7 @@ export function SettingsClient({ initialSettings, initialCoupons }: SettingsClie
                         )}
                       </div>
                       <CldUploadWidget
-                        uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                        uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'products'}
                         onSuccess={(result: any) => handleStoreChange('logo', result.info.secure_url)}
                       >
                         {({ open }) => (

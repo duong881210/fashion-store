@@ -74,7 +74,6 @@ export default function LoginForm() {
     <div className="mx-auto w-full max-w-md space-y-6">
       <div className="space-y-2 text-center">
         <h1 className="text-3xl font-bold tracking-tight text-gray-900">Chào mừng trở lại</h1>
-        <p className="text-gray-500">Nhập thông tin đăng nhập để truy cập tài khoản của bạn một cách an toàn</p>
       </div>
 
       {error && (

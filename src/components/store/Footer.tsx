@@ -30,8 +30,6 @@ export default function Footer() {
           <h3 className="font-semibold text-lg mb-4">Cửa Hàng</h3>
           <ul className="space-y-2 text-sm text-foreground/70">
             <li><Link href="/collections/new" className="hover:text-primary transition-colors">Hàng Mới Về</Link></li>
-            <li><Link href="/collections/women" className="hover:text-primary transition-colors">Nữ</Link></li>
-            <li><Link href="/collections/men" className="hover:text-primary transition-colors">Nam</Link></li>
             <li><Link href="/collections/accessories" className="hover:text-primary transition-colors">Phụ Kiện</Link></li>
             <li><Link href="/sale" className="hover:text-primary transition-colors">Khuyến Mãi</Link></li>
           </ul>

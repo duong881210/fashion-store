@@ -68,8 +68,8 @@ const generateProducts = (categoryIds: any[]) => {
         }
       ],
       sold: Math.floor(Math.random() * 500),
-      rating: Number((Math.random() * 1.5 + 3.5).toFixed(1)),
-      reviewCount: Math.floor(Math.random() * 100),
+      rating: 0,
+      reviewCount: 0,
       isPublished: true,
       isFeatured: isFeatured,
       seoTitle: `Mua ${names[i % names.length]} Chính Hãng Rẻ Đẹp`,
@@ -125,6 +125,7 @@ async function seed() {
     const { Coupon } = await import('../src/server/db/models/Coupon');
     const { Order } = await import('../src/server/db/models/Order');
     const { Settings } = await import('../src/server/db/models/Settings');
+    const { Review } = await import('../src/server/db/models/Review');
 
     await connectDB();
     console.log("🔌 Connected to MongoDB instance...");
@@ -136,6 +137,7 @@ async function seed() {
     await Coupon.deleteMany({});
     await Order.deleteMany({});
     await Settings.deleteMany({});
+    await Review.deleteMany({});
 
     // 1. Seed Settings
     console.log("🟢 Seeding Store Settings...");
@@ -237,14 +239,120 @@ async function seed() {
       customersData.map(userData => User.create(userData))
     );
 
-    // 6. Seed Orders for Customers (1-3 orders each)
-    console.log("🟢 Seeding Customer Order Histories...");
+    // 6. Seed Customer Order Histories and Reviews
+    console.log("🟢 Seeding Customer Order Histories and Reviews...");
+    const reviewsTemplates = [
+      { rating: 5, comment: "Chất lượng sản phẩm tuyệt vời, phom dáng mặc rất tôn dáng, mặc rất thoải mái. Giao hàng cực kỳ nhanh chóng." },
+      { rating: 5, comment: "Đóng gói sản phẩm rất đẹp và cẩn thận. Vải cotton 100% mềm mịn và mát mẻ. Xứng đáng 5 sao!" },
+      { rating: 4, comment: "Áo đẹp, giống hệt như trong hình mô tả. Màu sắc chuẩn chỉnh, đường may chắc chắn. Sẽ mua thêm các màu khác." },
+      { rating: 4, comment: "Giao hàng nhanh chóng. Chất vải sờ rất mịn, mặc mát và nhẹ, tuy nhiên phom áo hơi ôm một chút so với hình dung." },
+      { rating: 5, comment: "Rất ưng ý luôn! Form dáng đẹp xuất sắc, chất vải dày dặn xịn sò. Shop phục vụ rất nhiệt tình, tư vấn kỹ." },
+      { rating: 3, comment: "Sản phẩm ở mức tạm ổn, chất vải hơi mỏng một chút so với hình ảnh trên mạng. Giao hàng ở mức trung bình." }
+    ];
+
+    const reviewImages = [
+      "https://images.unsplash.com/photo-1523381210434-271e8be1f52b",
+      "https://images.unsplash.com/photo-1543087903-1ac2ec7aa8c5",
+      "https://images.unsplash.com/photo-1509631179647-0177331693ae",
+      "https://images.unsplash.com/photo-1525507119028-ed4c629a60a3"
+    ];
+
+    // Create a deterministic completed order for customer1@gmail.com (index 0)
+    // so they have items ready to review for testing.
+    const testCustomer = createdCustomers[0];
+    const testAddress = testCustomer.addresses[0];
+    
+    // Test completed (delivered) order for Customer 1
+    const testProduct1 = createdProducts[0];
+    const testProduct2 = createdProducts[1];
+    
+    const testOrder = new Order({
+      customer: testCustomer._id,
+      items: [
+        {
+          product: testProduct1._id,
+          productName: testProduct1.name,
+          productImage: testProduct1.images[0] || '',
+          color: testProduct1.variants[0].color,
+          size: testProduct1.variants[0].sizes[0].size,
+          quantity: 1,
+          price: testProduct1.salePrice || testProduct1.price
+        },
+        {
+          product: testProduct2._id,
+          productName: testProduct2.name,
+          productImage: testProduct2.images[0] || '',
+          color: testProduct2.variants[0].color,
+          size: testProduct2.variants[0].sizes[0].size,
+          quantity: 1,
+          price: testProduct2.salePrice || testProduct2.price
+        }
+      ],
+      subtotal: (testProduct1.salePrice || testProduct1.price) + (testProduct2.salePrice || testProduct2.price),
+      shippingFee: 30000,
+      discount: 0,
+      total: (testProduct1.salePrice || testProduct1.price) + (testProduct2.salePrice || testProduct2.price) + 30000,
+      shippingAddress: {
+        fullName: testAddress.fullName,
+        phone: testAddress.phone,
+        street: testAddress.street,
+        ward: testAddress.ward,
+        district: testAddress.district,
+        province: testAddress.province
+      },
+      status: 'delivered',
+      paymentStatus: 'paid',
+      paymentMethod: 'cod',
+      timeline: [
+        { status: 'pending', message: 'Đơn hàng được khởi tạo thành công', timestamp: new Date(Date.now() - 3600000 * 48) },
+        { status: 'delivered', message: 'Đơn hàng đã được giao thành công', timestamp: new Date(Date.now() - 3600000 * 2) }
+      ]
+    });
+    await testOrder.save();
+
+    // Create a pending order for Customer 1 as well
+    const testOrder2 = new Order({
+      customer: testCustomer._id,
+      items: [
+        {
+          product: createdProducts[2]._id,
+          productName: createdProducts[2].name,
+          productImage: createdProducts[2].images[0] || '',
+          color: createdProducts[2].variants[0].color,
+          size: createdProducts[2].variants[0].sizes[0].size,
+          quantity: 1,
+          price: createdProducts[2].salePrice || createdProducts[2].price
+        }
+      ],
+      subtotal: createdProducts[2].salePrice || createdProducts[2].price,
+      shippingFee: 30000,
+      discount: 0,
+      total: (createdProducts[2].salePrice || createdProducts[2].price) + 30000,
+      shippingAddress: {
+        fullName: testAddress.fullName,
+        phone: testAddress.phone,
+        street: testAddress.street,
+        ward: testAddress.ward,
+        district: testAddress.district,
+        province: testAddress.province
+      },
+      status: 'pending',
+      paymentStatus: 'unpaid',
+      paymentMethod: 'cod',
+      timeline: [
+        { status: 'pending', message: 'Đơn hàng được khởi tạo thành công', timestamp: new Date() }
+      ]
+    });
+    await testOrder2.save();
+
+    // Now seed orders and reviews for all OTHER customers (index >= 1)
     const orderStatuses: Array<'pending' | 'confirmed' | 'processing' | 'shipping' | 'delivered' | 'cancelled'> = [
       'pending', 'confirmed', 'processing', 'shipping', 'delivered', 'cancelled'
     ];
 
-    for (const customer of createdCustomers) {
-      const orderCount = Math.floor(Math.random() * 3) + 1; // 1 to 3 orders
+    for (let c = 1; c < createdCustomers.length; c++) {
+      const customer = createdCustomers[c];
+      const orderCount = Math.floor(Math.random() * 2) + 1; // 1 to 2 orders
       
       for (let o = 0; o < orderCount; o++) {
         const randomItemsCount = Math.floor(Math.random() * 2) + 1; // 1 to 2 items
@@ -293,7 +401,8 @@ async function seed() {
 
         const shippingFee = 30000;
         const total = Math.max(0, subtotal + shippingFee - discount);
-        const randomStatus = orderStatuses[Math.floor(Math.random() * orderStatuses.length)];
+        // High probability of delivered orders so we get plenty of reviews
+        const randomStatus = Math.random() > 0.35 ? 'delivered' : orderStatuses[Math.floor(Math.random() * orderStatuses.length)];
         const paymentMethod = Math.random() > 0.5 ? 'cod' : 'vnpay';
         const paymentStatus = (randomStatus === 'delivered' || (paymentMethod === 'vnpay' && randomStatus !== 'cancelled')) ? 'paid' : 'unpaid';
 
@@ -322,7 +431,7 @@ async function seed() {
             {
               status: 'pending',
               message: 'Đơn hàng được khởi tạo thành công',
-              timestamp: new Date(Date.now() - 3600000 * 24)
+              timestamp: new Date(Date.now() - 3600000 * 24 * 3)
             }
           ]
         });
@@ -331,11 +440,35 @@ async function seed() {
           order.timeline.push({
             status: randomStatus,
             message: `Đơn hàng chuyển sang trạng thái ${randomStatus}`,
-            timestamp: new Date()
+            timestamp: new Date(Date.now() - 3600000 * 24 * 1)
           });
         }
 
-        await order.save();
+        const savedOrder = await order.save();
+
+        // If the order was delivered, seed reviews for its items
+        if (randomStatus === 'delivered') {
+          for (const item of orderItems) {
+            // 70% probability of leaving a review
+            if (Math.random() > 0.3) {
+              const template = reviewsTemplates[Math.floor(Math.random() * reviewsTemplates.length)];
+              const hasImages = Math.random() > 0.5;
+              const selectedImages = hasImages 
+                ? [reviewImages[Math.floor(Math.random() * reviewImages.length)]]
+                : [];
+
+              await Review.create({
+                product: item.product,
+                customer: customer._id,
+                order: savedOrder._id,
+                rating: template.rating,
+                comment: template.comment,
+                images: selectedImages,
+                isVerified: true
+              });
+            }
+          }
+        }
       }
     }
 
@@ -345,7 +478,7 @@ async function seed() {
     console.log(`   - ${createdCategories.length} Categories`);
     console.log(`   - ${createdProducts.length} Products with Variants`);
     console.log(`   - 1 Admin: admin@fashionstore.vn / Admin@123456`);
-    console.log(`   - 10 Customers with order histories`);
+    console.log(`   - 10 Customers with order histories and dynamic reviews`);
 
     process.exit(0);
   } catch (error) {

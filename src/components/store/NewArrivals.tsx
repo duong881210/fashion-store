@@ -12,7 +12,7 @@ export async function NewArrivals() {
   if (!products || products.length === 0) return null;
 
   return (
-    <section className="py-16 mx-4 lg:mx-auto max-w-7xl border-t border-slate-100">
+    <section className="py-16 px-4 md:px-6 lg:px-8 mx-auto max-w-7xl w-full border-t border-slate-100">
       <div className="flex justify-between items-end mb-8">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-slate-900 mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>

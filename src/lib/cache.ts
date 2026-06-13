@@ -37,10 +37,15 @@ export async function getCachedBestSellers(limit: number = 8) {
   return JSON.parse(JSON.stringify(products));
 }
 
+import mongoose from 'mongoose';
+
 export async function getCachedProductBySlug(slug: string) {
   cacheTag('product-details');
   await connectDB();
-  const product = await Product.findOne({ slug, isPublished: true })
+  const isObjectId = mongoose.Types.ObjectId.isValid(slug);
+  const query = isObjectId ? { _id: slug, isPublished: true } : { slug, isPublished: true };
+  
+  const product = await Product.findOne(query)
     .populate('category', 'name slug')
     .lean();
   if (!product) return null;

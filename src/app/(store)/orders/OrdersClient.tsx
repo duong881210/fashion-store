@@ -223,7 +223,7 @@ export default function OrdersClient({ initialData }: { initialData: { orders: a
                           </div>
                           {order.status === 'delivered' && (
                             <Button variant="outline" size="sm" className="h-8 text-xs" asChild>
-                              <Link href={`/products/${item.product}?review=true`}>Đánh giá</Link>
+                              <Link href={`/products/${item.product}?review=true&orderId=${order._id}`}>Đánh giá</Link>
                             </Button>
                           )}
                         </div>

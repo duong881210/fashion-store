@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Metadata } from "next";
 import connectDB from "@/server/db";
 import { Product } from "@/server/db/models/Product";
@@ -45,14 +45,28 @@ export async function generateMetadata({
 
 export default async function ProductDetailPage({
   params,
+  searchParams,
 }: {
-  params: Promise<{ slug: string }>
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { slug } = await params;
+  const resolvedSearchParams = await searchParams;
+  const review = resolvedSearchParams.review;
+  const orderId = resolvedSearchParams.orderId;
 
   const product = await getCachedProductBySlug(slug);
   if (!product) {
     notFound();
+  }
+
+  // Redirect to canonical slug if accessed by ObjectId
+  if (slug !== product.slug) {
+    const query = new URLSearchParams();
+    if (review) query.set("review", String(review));
+    if (orderId) query.set("orderId", String(orderId));
+    const queryString = query.toString();
+    redirect(`/products/${product.slug}${queryString ? `?${queryString}` : ""}`);
   }
 
   const relatedProducts = await getCachedRelatedProducts(product.category?.slug, product._id.toString(), 9);
