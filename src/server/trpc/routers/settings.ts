@@ -59,7 +59,12 @@ const settingsSchema = z.object({
   payment: z.object({
     vnpayTmnCode: z.string().optional(),
     isSandbox: z.boolean(),
-  })
+  }),
+  chatbot: z.object({
+    isEnabled: z.boolean(),
+    systemPrompt: z.string(),
+    welcomeMessage: z.string(),
+  }).optional()
 });
 
 export const settingsRouter = router({
@@ -87,6 +92,11 @@ export const settingsRouter = router({
         },
         payment: {
           isSandbox: true
+        },
+        chatbot: {
+          isEnabled: false,
+          systemPrompt: 'Bạn là chatbot AI hỗ trợ khách hàng của cửa hàng thời trang Fashion Store. Trả lời các câu hỏi về sản phẩm, đơn hàng và các chính sách của cửa hàng một cách lịch sự, thân thiện và ngắn gọn.',
+          welcomeMessage: 'Xin chào! Mình là trợ lý AI của Fashion Store. Mình có thể giúp gì cho bạn hôm nay?'
         }
       });
     }
@@ -94,6 +104,16 @@ export const settingsRouter = router({
     // Ensure provinces are populated if missing for some reason
     if (!settings.shipping.provinces || settings.shipping.provinces.length === 0) {
       settings.shipping.provinces = defaultProvincesData;
+      await settings.save();
+    }
+
+    // Ensure chatbot config is populated
+    if (!settings.chatbot) {
+      settings.chatbot = {
+        isEnabled: false,
+        systemPrompt: 'Bạn là chatbot AI hỗ trợ khách hàng của cửa hàng thời trang Fashion Store. Trả lời các câu hỏi về sản phẩm, đơn hàng và các chính sách của cửa hàng một cách lịch sự, thân thiện và ngắn gọn.',
+        welcomeMessage: 'Xin chào! Mình là trợ lý AI của Fashion Store. Mình có thể giúp gì cho bạn hôm nay?'
+      };
       await settings.save();
     }
 

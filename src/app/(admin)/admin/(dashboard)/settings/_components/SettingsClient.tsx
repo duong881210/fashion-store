@@ -105,6 +105,13 @@ export function SettingsClient({ initialSettings, initialCoupons }: SettingsClie
     }));
   };
 
+  const handleChatbotChange = (field: string, value: any) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      chatbot: { ...prev.chatbot, [field]: value }
+    }));
+  };
+
   // Coupon Mutations
   const utils = trpc.useUtils();
   const createCoupon = trpc.coupon.create.useMutation({
@@ -140,19 +147,22 @@ export function SettingsClient({ initialSettings, initialCoupons }: SettingsClie
     <div className="space-y-6 max-w-6xl">
       <div className="flex items-center justify-between">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-5 h-auto p-1 bg-muted/50 w-full lg:w-3/4 mb-6">
-            <TabsTrigger value="store" className="py-2.5">
+          <TabsList className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 h-auto p-1 bg-muted/50 w-full lg:w-full mb-6">
+            <TabsTrigger value="store" className="py-2.5 text-xs sm:text-sm">
               Cửa Hàng {isDirty && <span className="text-primary ml-1">*</span>}
             </TabsTrigger>
-            <TabsTrigger value="shipping" className="py-2.5">
+            <TabsTrigger value="shipping" className="py-2.5 text-xs sm:text-sm">
               Vận Chuyển {isDirty && <span className="text-primary ml-1">*</span>}
             </TabsTrigger>
-            <TabsTrigger value="coupons" className="py-2.5">Khuyến Mãi</TabsTrigger>
-            <TabsTrigger value="emails" className="py-2.5">
+            <TabsTrigger value="coupons" className="py-2.5 text-xs sm:text-sm">Khuyến Mãi</TabsTrigger>
+            <TabsTrigger value="emails" className="py-2.5 text-xs sm:text-sm">
               Email {isDirty && <span className="text-primary ml-1">*</span>}
             </TabsTrigger>
-            <TabsTrigger value="payment" className="py-2.5">
+            <TabsTrigger value="payment" className="py-2.5 text-xs sm:text-sm">
               Thanh Toán {isDirty && <span className="text-primary ml-1">*</span>}
+            </TabsTrigger>
+            <TabsTrigger value="chatbot" className="py-2.5 text-xs sm:text-sm">
+              Chatbot AI {isDirty && <span className="text-primary ml-1">*</span>}
             </TabsTrigger>
           </TabsList>
 
@@ -475,6 +485,60 @@ export function SettingsClient({ initialSettings, initialCoupons }: SettingsClie
                     <Button variant="outline" onClick={() => toast.info('Vui lòng cấu hình qua biến môi trường (.env)')}>Sửa</Button>
                   </div>
                   <p className="text-xs text-muted-foreground">Khóa cấu hình VNPay được thiết lập trong tệp `.env` vì lý do bảo mật.</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* CHATBOT AI TAB */}
+          <TabsContent value="chatbot" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Cấu Hình Chatbot AI Hỗ Trợ Khách Hàng</CardTitle>
+                <CardDescription>Cấu hình chatbot thông minh hỗ trợ khách hàng tự động thông qua Gemini API.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Kích hoạt Chatbot AI</Label>
+                    <p className="text-sm text-muted-foreground">Khi bật, chatbot AI sẽ tự động phản hồi tin nhắn của khách hàng.</p>
+                  </div>
+                  <Switch
+                    checked={formData.chatbot?.isEnabled || false}
+                    onCheckedChange={(val: boolean) => handleChatbotChange('isEnabled', val)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Khóa API (GEMINI_API_KEY)</Label>
+                  <Input
+                    type="password"
+                    value="****************"
+                    readOnly
+                    className="bg-muted text-muted-foreground opacity-70"
+                  />
+                  <p className="text-xs text-muted-foreground">Để đảm bảo an toàn, khóa API Gemini được thiết lập thông qua biến môi trường `GEMINI_API_KEY` trong tệp `.env.local`.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Tin nhắn chào mừng</Label>
+                  <Input
+                    value={formData.chatbot?.welcomeMessage || ''}
+                    onChange={(e) => handleChatbotChange('welcomeMessage', e.target.value)}
+                    placeholder="VD: Xin chào! Shop có thể giúp gì cho bạn?"
+                  />
+                  <p className="text-xs text-muted-foreground">Tin nhắn chào mừng tự động hiển thị khi khách hàng mở hộp thoại chat lần đầu.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Chỉ dẫn cho AI (System Prompt)</Label>
+                  <Textarea
+                    className="h-40 font-sans text-sm"
+                    value={formData.chatbot?.systemPrompt || ''}
+                    onChange={(e: any) => handleChatbotChange('systemPrompt', e.target.value)}
+                    placeholder="Chỉ dẫn chi tiết về phong cách trả lời, thông tin sản phẩm và chính sách của shop..."
+                  />
+                  <p className="text-xs text-muted-foreground">Chỉ dẫn định hình cá tính và phạm vi trả lời của AI. Ví dụ: Slogan của shop, chính sách đổi trả trong vòng 7 ngày, v.v.</p>
                 </div>
               </CardContent>
             </Card>

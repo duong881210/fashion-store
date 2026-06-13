@@ -50,6 +50,24 @@ export default function AdminChatPage() {
     }
   });
 
+  // AI Bot control
+  const { data: aiPausedData, refetch: refetchAiPaused } = trpc.chat.isAiPaused.useQuery(
+    { sessionId: activeSessionId! },
+    { enabled: !!activeSessionId }
+  );
+  const isAiPaused = aiPausedData?.isPaused ?? false;
+
+  const toggleAiMutation = trpc.chat.toggleAi.useMutation({
+    onSuccess: () => {
+      refetchAiPaused();
+    }
+  });
+
+  const handleToggleAi = (checked: boolean) => {
+    if (!activeSessionId) return;
+    toggleAiMutation.mutate({ sessionId: activeSessionId, isPaused: !checked });
+  };
+
   // Load messages
   useEffect(() => {
     if (historyData?.messages) {
@@ -231,9 +249,22 @@ export default function AdminChatPage() {
                   <p className="text-xs text-muted-foreground">{activeSessionDetails?.customer?.email || 'Chưa cập nhật email'}</p>
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="text-xs">
-                Xem hồ sơ <ChevronRight size={14} className="ml-1" />
-              </Button>
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2 border-r border-border pr-4">
+                  <Switch
+                    id="ai-auto-reply"
+                    checked={!isAiPaused}
+                    onCheckedChange={handleToggleAi}
+                    disabled={toggleAiMutation.isPending}
+                  />
+                  <Label htmlFor="ai-auto-reply" className="text-xs font-semibold cursor-pointer">
+                    Trợ lý AI tự động
+                  </Label>
+                </div>
+                <Button variant="outline" size="sm" className="text-xs">
+                  Xem hồ sơ <ChevronRight size={14} className="ml-1" />
+                </Button>
+              </div>
             </div>
 
             {/* Chat Area */}
@@ -268,6 +299,9 @@ export default function AdminChatPage() {
                           )}
                         </div>
                         <span className={`text-[10px] text-muted-foreground mt-1 flex items-center gap-1 ${isAdmin ? 'justify-end' : 'justify-start'}`}>
+                          {msg.isAI ? (
+                            <span className="text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded text-[9px] mr-1">Trợ lý AI</span>
+                          ) : null}
                           {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true, locale: vi })}
                           {isAdmin && (
                             <CheckCircle2 size={12} className={msg.isRead ? 'text-primary' : 'text-muted-foreground/50'} />

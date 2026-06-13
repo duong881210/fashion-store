@@ -3,6 +3,7 @@ import { z } from 'zod/v4';
 import { router, protectedProcedure, adminProcedure } from '../middleware';
 import { ChatMessage } from '../../db/models/ChatMessage';
 import { User } from '../../db/models/User';
+import { Settings } from '../../db/models/Settings';
 import connectDB from '../../db';
 
 export const chatRouter = router({
@@ -15,13 +16,26 @@ export const chatRouter = router({
     // Assuming this procedure is mostly called by customers when opening the widget.
     const existingMessage = await ChatMessage.findOne({ sender: userId }).sort({ createdAt: -1 }).lean();
     
+    let settings = await Settings.findOne().lean();
+    const chatbotSettings = settings?.chatbot || {
+      isEnabled: false,
+      welcomeMessage: 'Xin chào! Mình là trợ lý AI của Fashion Store. Mình có thể giúp gì cho bạn hôm nay?',
+      systemPrompt: ''
+    };
+
     if (existingMessage && existingMessage.sessionId) {
-      return { sessionId: existingMessage.sessionId };
+      return { 
+        sessionId: existingMessage.sessionId,
+        chatbot: chatbotSettings
+      };
     }
     
     // Create new session ID
     const newSessionId = `chat_${userId}_${Date.now()}`;
-    return { sessionId: newSessionId };
+    return { 
+      sessionId: newSessionId,
+      chatbot: chatbotSettings
+    };
   }),
 
   getMessages: protectedProcedure
@@ -174,5 +188,24 @@ export const chatRouter = router({
       await message.save();
       
       return JSON.parse(JSON.stringify(message));
+    }),
+
+  isAiPaused: adminProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .query(async ({ input }) => {
+      const { pausedAiSessions } = await import('../../lib/chatState');
+      return { isPaused: pausedAiSessions.has(input.sessionId) };
+    }),
+
+  toggleAi: adminProcedure
+    .input(z.object({ sessionId: z.string(), isPaused: z.boolean() }))
+    .mutation(async ({ input }) => {
+      const { pausedAiSessions } = await import('../../lib/chatState');
+      if (input.isPaused) {
+        pausedAiSessions.add(input.sessionId);
+      } else {
+        pausedAiSessions.delete(input.sessionId);
+      }
+      return { success: true };
     })
 });

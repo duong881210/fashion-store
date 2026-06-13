@@ -16,6 +16,7 @@ export interface IChatMessage {
     orderTotal: number;
   };
   isRead: boolean;
+  isAI?: boolean;
   createdAt: string;
 }
 
@@ -82,10 +83,6 @@ export function initSocketServer(io: Server<ClientToServerEvents, ServerToClient
     });
 
     socket.on('chat:send', async (data) => {
-      // The message is already saved via tRPC, or we can save it here.
-      // The prompt says "sendMessage (protected): save to DB. Socket.io delivery happens separately."
-      // BUT then "socket.on('chat:send', async (data) => { const msg = await ChatMessage.create(...) })"
-      // Wait, let's follow the prompt exactly: save in socket.on and emit.
       try {
         const { ChatMessage } = await import('../db/models/ChatMessage');
         const msg = await ChatMessage.create({
@@ -94,7 +91,8 @@ export function initSocketServer(io: Server<ClientToServerEvents, ServerToClient
           senderRole: socket.data.role,
           content: data.content,
           type: data.type,
-          isRead: false
+          isRead: false,
+          isAI: false
         });
         
         const populatedMsg = JSON.parse(JSON.stringify(msg));
@@ -108,6 +106,62 @@ export function initSocketServer(io: Server<ClientToServerEvents, ServerToClient
             preview: data.content.slice(0, 50),
             customerName: user?.name ?? 'Khách'
           });
+
+          // Chatbot AI Auto-Response Logic
+          const { Settings } = await import('../db/models/Settings');
+          const settings = await Settings.findOne().lean();
+          
+          if (settings?.chatbot?.isEnabled) {
+            // Check if this session is paused
+            const { pausedAiSessions } = await import('../lib/chatState');
+            const isPaused = pausedAiSessions.has(data.sessionId);
+            
+            if (!isPaused) {
+              // 1. Show typing status for admin/AI
+              io.to(`chat_${data.sessionId}`).emit('chat:typing', {
+                sessionId: data.sessionId,
+                isTyping: true,
+                senderRole: 'admin'
+              });
+
+              // 2. Call Gemini helper
+              const { getAIResponse } = await import('../lib/gemini');
+              const aiResponse = await getAIResponse(socket.data.userId, data.content, data.sessionId);
+
+              // 3. Turn off typing status
+              io.to(`chat_${data.sessionId}`).emit('chat:typing', {
+                sessionId: data.sessionId,
+                isTyping: false,
+                senderRole: 'admin'
+              });
+
+              if (aiResponse) {
+                // Find an admin user to be the sender
+                const adminUser = await User.findOne({ role: 'admin' }).lean();
+                const botMsg = await ChatMessage.create({
+                  sessionId: data.sessionId,
+                  sender: adminUser ? adminUser._id : socket.data.userId,
+                  senderRole: 'admin',
+                  content: aiResponse,
+                  type: 'text',
+                  isRead: false,
+                  isAI: true
+                });
+
+                const populatedBotMsg = JSON.parse(JSON.stringify(botMsg));
+                
+                // Emit the AI response to the session room
+                io.to(`chat_${data.sessionId}`).emit('chat:receive', populatedBotMsg);
+
+                // Notify admin dashboard of the new message
+                io.to('admin_room').emit('chat:new_message', {
+                  sessionId: data.sessionId,
+                  preview: aiResponse.slice(0, 50),
+                  customerName: user?.name ?? 'Khách'
+                });
+              }
+            }
+          }
         }
       } catch (err) {
         console.error('Error saving chat message', err);

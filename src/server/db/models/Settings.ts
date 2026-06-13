@@ -37,6 +37,11 @@ export interface ISettings extends Document {
     vnpayTmnCode?: string;
     isSandbox: boolean;
   };
+  chatbot?: {
+    isEnabled: boolean;
+    systemPrompt: string;
+    welcomeMessage: string;
+  };
 }
 
 const ProvinceFeeSchema = new Schema<IProvinceFee>({
@@ -76,6 +81,11 @@ const SettingsSchema = new Schema<ISettings>(
     payment: {
       vnpayTmnCode: { type: String },
       isSandbox: { type: Boolean, default: true }
+    },
+    chatbot: {
+      isEnabled: { type: Boolean, default: false },
+      systemPrompt: { type: String, default: 'Bạn là chatbot AI hỗ trợ khách hàng của cửa hàng thời trang Fashion Store. Trả lời các câu hỏi về sản phẩm, đơn hàng và các chính sách của cửa hàng một cách lịch sự, thân thiện và ngắn gọn.' },
+      welcomeMessage: { type: String, default: 'Xin chào! Mình là trợ lý AI của Fashion Store. Mình có thể giúp gì cho bạn hôm nay?' }
     }
   },
   {

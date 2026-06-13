@@ -16,6 +16,7 @@ interface Message {
   type: string;
   createdAt: string;
   metadata?: any;
+  isAI?: boolean;
 }
 
 export function ChatWidget() {
@@ -43,11 +44,26 @@ export function ChatWidget() {
     { enabled: !!sessionId && isOpen }
   );
 
+  const chatbot = sessionData?.chatbot;
+
   useEffect(() => {
     if (historyData?.messages) {
-      setMessages(historyData.messages);
+      if (historyData.messages.length === 0 && chatbot?.isEnabled && chatbot?.welcomeMessage) {
+        setMessages([
+          {
+            _id: 'welcome',
+            senderRole: 'admin',
+            content: chatbot.welcomeMessage,
+            type: 'text',
+            isAI: true,
+            createdAt: new Date().toISOString()
+          }
+        ]);
+      } else {
+        setMessages(historyData.messages);
+      }
     }
-  }, [historyData]);
+  }, [historyData, chatbot]);
 
   useEffect(() => {
     if (isOpen && unreadCount > 0) {
@@ -207,7 +223,10 @@ export function ChatWidget() {
                         </div>
                       )}
                     </div>
-                    <span className={`text-[10px] text-muted-foreground mt-1 ${isCustomer ? 'text-right' : 'text-left'}`}>
+                    <span className={`text-[10px] text-muted-foreground mt-1 flex items-center gap-1 ${isCustomer ? 'justify-end' : 'justify-start'}`}>
+                      {msg.isAI ? (
+                        <span className="text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded text-[9px] mr-1">Trợ lý AI</span>
+                      ) : null}
                       {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true, locale: vi })}
                     </span>
                   </div>

@@ -13,6 +13,7 @@ export interface IChatMessage extends Document {
     orderTotal?: number;
   };
   isRead: boolean;
+  isAI?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,6 +32,7 @@ const ChatMessageSchema: Schema = new Schema(
       orderTotal: Number,
     },
     isRead: { type: Boolean, default: false },
+    isAI: { type: Boolean, default: false },
   },
   {
     timestamps: true,
