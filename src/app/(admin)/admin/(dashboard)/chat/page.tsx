@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Search, Send, CheckCircle2, ChevronRight, Package, Image as ImageIcon } from 'lucide-react';
+import { Search, Send, CheckCircle2, ChevronRight, Package, Image as ImageIcon, MessageSquare } from 'lucide-react';
+import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -26,7 +27,7 @@ export default function AdminChatPage() {
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<any[]>([]);
   const [customerTyping, setCustomerTyping] = useState(false);
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -73,7 +74,7 @@ export default function AdminChatPage() {
     if (historyData?.messages) {
       setMessages(historyData.messages);
       messagesEndRef.current?.scrollIntoView();
-      
+
       // Mark read when opening session
       if (activeSessionId) {
         markReadMutation.mutate({ sessionId: activeSessionId });
@@ -136,7 +137,7 @@ export default function AdminChatPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
-    
+
     if (!socket || !activeSessionId) return;
 
     socket.emit('chat:typing', { sessionId: activeSessionId, isTyping: true });
@@ -163,8 +164,8 @@ export default function AdminChatPage() {
         <div className="p-4 border-b border-border space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Tìm khách hàng..." 
+            <Input
+              placeholder="Tìm khách hàng..."
               className="pl-9 bg-muted/50"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -186,9 +187,8 @@ export default function AdminChatPage() {
                 <button
                   key={session.sessionId}
                   onClick={() => setActiveSessionId(session.sessionId)}
-                  className={`flex items-start gap-3 p-4 text-left border-b border-border transition-colors hover:bg-muted/50 ${
-                    activeSessionId === session.sessionId ? 'bg-primary/5 border-l-2 border-l-primary' : ''
-                  }`}
+                  className={`flex items-start gap-3 p-4 text-left border-b border-border transition-colors hover:bg-muted/50 ${activeSessionId === session.sessionId ? 'bg-primary/5 border-l-2 border-l-primary' : ''
+                    }`}
                 >
                   <Avatar className="h-10 w-10 shrink-0">
                     <AvatarImage src={session.customer?.image || ""} />
@@ -202,7 +202,7 @@ export default function AdminChatPage() {
                         {session.customer?.name || 'Khách Vãng Lai'}
                       </span>
                       <span className="text-[10px] text-muted-foreground shrink-0">
-                        {session.latestMessage?.createdAt 
+                        {session.latestMessage?.createdAt
                           ? formatDistanceToNow(new Date(session.latestMessage.createdAt), { addSuffix: true, locale: vi })
                           : ''}
                       </span>
@@ -251,15 +251,6 @@ export default function AdminChatPage() {
               </div>
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2 border-r border-border pr-4">
-                  <Switch
-                    id="ai-auto-reply"
-                    checked={!isAiPaused}
-                    onCheckedChange={handleToggleAi}
-                    disabled={toggleAiMutation.isPending}
-                  />
-                  <Label htmlFor="ai-auto-reply" className="text-xs font-semibold cursor-pointer">
-                    Trợ lý AI tự động
-                  </Label>
                 </div>
                 <Button variant="outline" size="sm" className="text-xs">
                   Xem hồ sơ <ChevronRight size={14} className="ml-1" />
@@ -278,13 +269,21 @@ export default function AdminChatPage() {
                     return (
                       <div key={msg._id || idx} className={`flex flex-col max-w-[70%] ${isAdmin ? 'self-end' : 'self-start'}`}>
                         <div
-                          className={`p-3 rounded-2xl ${
-                            isAdmin
-                              ? 'bg-primary text-primary-foreground rounded-tr-sm'
-                              : 'bg-muted border border-border text-foreground rounded-tl-sm'
-                          }`}
+                          className={`p-3 rounded-2xl ${isAdmin
+                            ? 'bg-primary text-primary-foreground rounded-tr-sm'
+                            : 'bg-muted border border-border text-foreground rounded-tl-sm'
+                            }`}
                         >
-                          {msg.type === 'text' && <p className="text-sm whitespace-pre-wrap">{msg.content}</p>}
+                          {msg.type === 'text' && (
+                            <div className="space-y-1">
+                              <p className="text-sm whitespace-pre-wrap">
+                                {renderMessageContent(msg.content, isAdmin)}
+                              </p>
+                              {extractProductSlugs(msg.content).map(slug => (
+                                <ProductPreviewCard key={slug} slug={slug} />
+                              ))}
+                            </div>
+                          )}
                           {msg.type === 'order_link' && (
                             <div className="flex flex-col gap-2">
                               <div className="font-medium text-xs opacity-90 border-b pb-1 mb-1 border-current/20 flex items-center gap-1">
@@ -326,10 +325,10 @@ export default function AdminChatPage() {
             <div className="p-4 border-t border-border bg-background shrink-0 space-y-3">
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {quickReplies.map((reply, idx) => (
-                  <Button 
-                    key={idx} 
-                    variant="secondary" 
-                    size="sm" 
+                  <Button
+                    key={idx}
+                    variant="secondary"
+                    size="sm"
                     className="text-xs shrink-0 rounded-full bg-muted/50"
                     onClick={() => setInputValue(reply)}
                   >
@@ -370,5 +369,97 @@ export default function AdminChatPage() {
   );
 }
 
-// Temporary import for MessageSquare icon when no session selected
-import { MessageSquare } from 'lucide-react';
+function renderMessageContent(content: string, isAdmin: boolean) {
+  const regex = /\[([^\]]+)\]\(([^)]+)\)|(\/products\/[a-zA-Z0-9_-]+)/g;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+  
+  while ((match = regex.exec(content)) !== null) {
+    const matchIndex = match.index;
+    if (matchIndex > lastIndex) {
+      parts.push(content.substring(lastIndex, matchIndex));
+    }
+    
+    if (match[1] && match[2]) {
+      const text = match[1];
+      const url = match[2];
+      parts.push(
+        <Link 
+          href={url} 
+          key={matchIndex} 
+          className={`underline font-semibold hover:opacity-85 transition-opacity ${isAdmin ? 'text-primary-foreground' : 'text-primary'}`}
+          target={url.startsWith('http') ? '_blank' : '_self'}
+        >
+          {text}
+        </Link>
+      );
+    } else if (match[3]) {
+      const url = match[3];
+      parts.push(
+        <Link 
+          href={url} 
+          key={matchIndex} 
+          className={`underline font-semibold hover:opacity-85 transition-opacity ${isAdmin ? 'text-primary-foreground' : 'text-primary'}`}
+        >
+          {url}
+        </Link>
+      );
+    }
+    lastIndex = regex.lastIndex;
+  }
+  
+  if (lastIndex < content.length) {
+    parts.push(content.substring(lastIndex));
+  }
+  
+  return parts.length > 0 ? parts : content;
+}
+
+function extractProductSlugs(content: string): string[] {
+  const regex = /\/products\/([a-zA-Z0-9_-]+)/g;
+  const slugs: string[] = [];
+  let match;
+  while ((match = regex.exec(content)) !== null) {
+    const slug = match[1];
+    if (slug && !slugs.includes(slug)) {
+      slugs.push(slug);
+    }
+  }
+  return slugs;
+}
+
+function ProductPreviewCard({ slug }: { slug: string }) {
+  const { data: product, isLoading } = trpc.product.getBySlug.useQuery(
+    { slug },
+    { staleTime: 5 * 60 * 1000 }
+  );
+
+  if (isLoading || !product) return null;
+
+  return (
+    <Link
+      href={`/products/${product.slug}`}
+      className="flex items-center gap-3 p-2 bg-background border border-border rounded-xl mt-2 hover:bg-muted/50 transition-colors pointer-events-auto shadow-sm block text-left text-foreground"
+    >
+      <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 relative border border-border/50">
+        <img
+          src={product.images?.[0] || '/images/placeholder.svg'}
+          alt={product.name}
+          className="h-full w-full object-cover"
+        />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="text-xs font-semibold text-foreground truncate">
+          {product.name}
+        </h4>
+        <p className="text-[10px] font-bold text-primary mt-0.5">
+          {new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND',
+          }).format(product.salePrice || product.price)}
+        </p>
+      </div>
+    </Link>
+  );
+}

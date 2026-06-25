@@ -17,6 +17,25 @@ import DOMPurify from 'isomorphic-dompurify';
 import { revalidateTag } from 'next/cache';
 import { getCachedFeatured, getCachedNewArrivals, getCachedBestSellers } from '@/lib/cache';
 
+function makeVietnameseRegex(text: string): string {
+  const base = text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd');
+  
+  let escaped = base.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  
+  return escaped
+    .replace(/a/g, '[aàáảãạăằắẳẵặâầấẩẫậ]')
+    .replace(/e/g, '[eèéẻẽẹêềếểễệ]')
+    .replace(/i/g, '[iìíỉĩị]')
+    .replace(/o/g, '[oòóỏõọôồốổỗộơờớởỡợ]')
+    .replace(/u/g, '[uùúủũụưừứửự]')
+    .replace(/y/g, '[yỳýỷỹỵ]')
+    .replace(/d/g, '[dđ]');
+}
+
 function invalidateProductCaches() {
   try {
     revalidateTag('featured-products', 'default');
@@ -147,11 +166,14 @@ export const productRouter = router({
     .input(z.object({ query: z.string() }))
     .query(async ({ input }) => {
       await connectDB();
-      const products = await Product.find(
-        { $text: { $search: input.query }, isPublished: true },
-        { score: { $meta: 'textScore' } }
-      )
-        .sort({ score: { $meta: 'textScore' } })
+      const cleanQuery = input.query.trim();
+      if (!cleanQuery) return [];
+
+      const regexQuery = makeVietnameseRegex(cleanQuery);
+      const products = await Product.find({
+        name: { $regex: regexQuery, $options: 'i' },
+        isPublished: true
+      })
         .limit(10)
         .select('name slug price images')
         .lean<IProduct[]>();

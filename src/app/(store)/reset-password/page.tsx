@@ -12,7 +12,7 @@ export default function ResetPasswordPage() {
       {/* Left Panel - Fashion Image */}
       <div className="hidden w-1/2 lg:block relative">
         <Image
-          src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop"
+          src="/images/auth/login-bg.jpg"
           alt="Fashion Editorial"
           fill
           className="object-cover"

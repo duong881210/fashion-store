@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
-import { Loader2, MapPin, CreditCard, Banknote, CheckCircle2 } from "lucide-react";
+import { Loader2, MapPin, CreditCard, Banknote, CheckCircle2, AlertCircle } from "lucide-react";
 import Image from "next/image";
+import CouponSelector from "@/components/store/CouponSelector";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
@@ -18,7 +19,8 @@ function formatCurrency(value: number) {
 
 export default function CheckoutClient({ profile }: { profile: any }) {
   const router = useRouter();
-  const { items, total, clearCart } = useCartStore();
+  const { items, total, clearCart, clearAppliedCoupon } = useCartStore();
+  const appliedCoupon = useCartStore((state) => state.appliedCoupon);
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState(1);
   const [selectedAddressId, setSelectedAddressId] = useState(profile?.addresses?.[0]?._id?.toString() || "new");
@@ -33,12 +35,11 @@ export default function CheckoutClient({ profile }: { profile: any }) {
   });
 
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "vnpay">("cod");
-  const [couponCode, setCouponCode] = useState("");
-  const [discount, setDiscount] = useState({ value: 0, code: "" });
 
   const createOrder = trpc.order.create.useMutation({
     onSuccess: async (data) => {
       clearCart();
+      clearAppliedCoupon();
       if (data.paymentMethod === "cod") {
         router.push(`/orders/${data.orderId}/success`);
       } else {
@@ -87,7 +88,29 @@ export default function CheckoutClient({ profile }: { profile: any }) {
 
   const subtotal = total();
   const shippingFee = 30000;
-  const finalTotal = subtotal + shippingFee - discount.value;
+
+  let discountValue = 0;
+  let couponMessage = "";
+  let isCouponError = false;
+
+  if (appliedCoupon) {
+    if (subtotal < appliedCoupon.minOrderValue) {
+      discountValue = 0;
+      couponMessage = `Đơn tối thiểu phải từ ${formatCurrency(appliedCoupon.minOrderValue)} để áp dụng mã này.`;
+      isCouponError = true;
+    } else {
+      if (appliedCoupon.type === "fixed") {
+        discountValue = appliedCoupon.value;
+      } else {
+        discountValue = Math.floor((subtotal * appliedCoupon.value) / 100);
+        if (appliedCoupon.maxDiscount && discountValue > appliedCoupon.maxDiscount) {
+          discountValue = appliedCoupon.maxDiscount;
+        }
+      }
+    }
+  }
+
+  const finalTotal = subtotal + shippingFee - discountValue;
 
   const handleNextStep = () => {
     if (step === 1) {
@@ -127,7 +150,7 @@ export default function CheckoutClient({ profile }: { profile: any }) {
     createOrder.mutate({
       shippingAddress,
       paymentMethod,
-      couponCode: discount.code || undefined
+      couponCode: appliedCoupon?.code || undefined
     });
   };
 
@@ -285,15 +308,25 @@ export default function CheckoutClient({ profile }: { profile: any }) {
             ))}
           </div>
 
+          <div className="border-t border-slate-200 pt-6 mb-4">
+            <CouponSelector orderValue={subtotal} isLoggedIn={true} />
+            {isCouponError && couponMessage && (
+              <p className="text-xs mt-2 text-red-500 font-medium bg-red-50/50 p-2.5 rounded-lg border border-red-100 flex items-center gap-1.5 animate-pulse">
+                <AlertCircle className="h-3.5 w-3.5" />
+                {couponMessage}
+              </p>
+            )}
+          </div>
+
           <div className="space-y-4 mb-6 text-sm border-t border-slate-200 pt-6">
             <div className="flex justify-between">
               <span className="text-slate-500">Tạm tính</span>
               <span className="font-medium text-slate-900">{formatCurrency(subtotal)}</span>
             </div>
-            {discount.value > 0 && (
+            {discountValue > 0 && appliedCoupon && (
               <div className="flex justify-between text-green-600">
-                <span>Giảm giá ({discount.code})</span>
-                <span>-{formatCurrency(discount.value)}</span>
+                <span>Giảm giá ({appliedCoupon.code})</span>
+                <span>-{formatCurrency(discountValue)}</span>
               </div>
             )}
             <div className="flex justify-between">

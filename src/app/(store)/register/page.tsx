@@ -7,7 +7,7 @@ export default function RegisterPage() {
       {/* Left Panel - Image */}
       <div className="hidden w-1/2 lg:block relative">
         <Image
-          src="https://images.unsplash.com/photo-1445205170230-053b83016050?q=80&w=2071&auto=format&fit=crop"
+          src="/images/auth/register-bg.jpg"
           alt="Fashion Editorial"
           fill
           className="object-cover"

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { MessageCircle, X, Send, MoreHorizontal, Image as ImageIcon } from 'lucide-react';
 import { useSocket } from '@/components/providers/SocketProvider';
@@ -212,7 +213,16 @@ export function ChatWidget() {
                           : 'bg-muted border border-border text-foreground rounded-tl-sm'
                       }`}
                     >
-                      {msg.type === 'text' && <p className="text-sm whitespace-pre-wrap">{msg.content}</p>}
+                      {msg.type === 'text' && (
+                        <div className="space-y-1">
+                          <p className="text-sm whitespace-pre-wrap">
+                            {renderMessageContent(msg.content, isCustomer)}
+                          </p>
+                          {extractProductSlugs(msg.content).map(slug => (
+                            <ProductPreviewCard key={slug} slug={slug} />
+                          ))}
+                        </div>
+                      )}
                       {msg.type === 'order_link' && (
                         <div className="flex flex-col gap-2">
                           <div className="font-medium text-xs opacity-90 border-b pb-1 mb-1 border-current/20">
@@ -270,5 +280,100 @@ export function ChatWidget() {
         </div>
       )}
     </div>
+  );
+}
+
+function renderMessageContent(content: string, isCustomer: boolean) {
+  const regex = /\[([^\]]+)\]\(([^)]+)\)|(\/products\/[a-zA-Z0-9_-]+)/g;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+  
+  while ((match = regex.exec(content)) !== null) {
+    const matchIndex = match.index;
+    if (matchIndex > lastIndex) {
+      parts.push(content.substring(lastIndex, matchIndex));
+    }
+    
+    if (match[1] && match[2]) {
+      const text = match[1];
+      const url = match[2];
+      parts.push(
+        <Link 
+          href={url} 
+          key={matchIndex} 
+          className={`underline font-semibold hover:opacity-85 transition-opacity ${isCustomer ? 'text-white' : 'text-primary'}`}
+          target={url.startsWith('http') ? '_blank' : '_self'}
+        >
+          {text}
+        </Link>
+      );
+    } else if (match[3]) {
+      const url = match[3];
+      parts.push(
+        <Link 
+          href={url} 
+          key={matchIndex} 
+          className={`underline font-semibold hover:opacity-85 transition-opacity ${isCustomer ? 'text-white' : 'text-primary'}`}
+        >
+          {url}
+        </Link>
+      );
+    }
+    lastIndex = regex.lastIndex;
+  }
+  
+  if (lastIndex < content.length) {
+    parts.push(content.substring(lastIndex));
+  }
+  
+  return parts.length > 0 ? parts : content;
+}
+
+function extractProductSlugs(content: string): string[] {
+  const regex = /\/products\/([a-zA-Z0-9_-]+)/g;
+  const slugs: string[] = [];
+  let match;
+  while ((match = regex.exec(content)) !== null) {
+    const slug = match[1];
+    if (slug && !slugs.includes(slug)) {
+      slugs.push(slug);
+    }
+  }
+  return slugs;
+}
+
+function ProductPreviewCard({ slug }: { slug: string }) {
+  const { data: product, isLoading } = trpc.product.getBySlug.useQuery(
+    { slug },
+    { staleTime: 5 * 60 * 1000 }
+  );
+
+  if (isLoading || !product) return null;
+
+  return (
+    <Link
+      href={`/products/${product.slug}`}
+      className="flex items-center gap-3 p-2 bg-background border border-border rounded-xl mt-2 hover:bg-muted/50 transition-colors pointer-events-auto shadow-sm block text-left text-foreground"
+    >
+      <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 relative border border-border/50">
+        <img
+          src={product.images?.[0] || '/images/placeholder.svg'}
+          alt={product.name}
+          className="h-full w-full object-cover"
+        />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="text-xs font-semibold text-foreground truncate">
+          {product.name}
+        </h4>
+        <p className="text-[10px] font-bold text-primary mt-0.5">
+          {new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND',
+          }).format(product.salePrice || product.price)}
+        </p>
+      </div>
+    </Link>
   );
 }

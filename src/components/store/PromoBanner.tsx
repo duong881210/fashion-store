@@ -24,7 +24,7 @@ export function PromoBanner() {
 
   return (
     <div className="bg-slate-900 text-white rounded-2xl overflow-hidden relative my-16 mx-4 lg:mx-auto max-w-7xl shadow-2xl">
-      <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1543087903-1ac2ec7aa8c5')] bg-cover bg-center bg-no-repeat opacity-20 transition-transform duration-[20s] hover:scale-110" />
+      <div className="absolute inset-0 bg-[url('/images/promo/flash-sale.jpg')] bg-cover bg-center bg-no-repeat opacity-20 transition-transform duration-[20s] hover:scale-110" />
       <div className="relative z-10 px-6 py-14 md:py-20 md:px-12 flex flex-col items-center text-center">
         <span className="bg-orange-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-4 shadow-[0_0_15px_rgba(234,88,12,0.6)]">
           Flash Sale - Chỉ trong tuần này

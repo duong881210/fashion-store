@@ -8,11 +8,11 @@ dotenv.config();
 
 // --- SAMPLE CATEGORY DATA ---
 const categories = [
-  { name: 'Áo Thun', slug: 'ao-thun', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab' },
-  { name: 'Áo Khoác', slug: 'ao-khoac', image: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea' },
-  { name: 'Quần Jeans', slug: 'quan-jeans', image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246' },
-  { name: 'Áo Sơ Mi', slug: 'ao-so-mi', image: 'https://images.unsplash.com/photo-1620012253295-c05518e993be' },
-  { name: 'Phụ Kiện', slug: 'phu-kien', image: 'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f' }
+  { name: 'Áo Thun', slug: 'ao-thun', image: '/images/categories/ao-thun.jpg' },
+  { name: 'Áo Khoác', slug: 'ao-khoac', image: '/images/categories/ao-khoac.jpg' },
+  { name: 'Quần Jeans', slug: 'quan-jeans', image: '/images/categories/quan-jeans.jpg' },
+  { name: 'Áo Sơ Mi', slug: 'ao-so-mi', image: '/images/categories/ao-so-mi.jpg' },
+  { name: 'Phụ Kiện', slug: 'phu-kien', image: '/images/categories/phu-kien.jpg' }
 ];
 
 // --- SAMPLE PRODUCT DATA GENERATOR ---
@@ -25,13 +25,13 @@ const generateProducts = (categoryIds: any[]) => {
     "Thắt Lưng Da Thật", "Sneaker Trắng Cổ Thấp", "Áo Hoodie Nỉ Bông"
   ];
   const imagesList = [
-    ["https://images.unsplash.com/photo-1521572163474-6864f9cf17ab", "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a"],
-    ["https://images.unsplash.com/photo-1591047139829-d91aecb6caea", "https://images.unsplash.com/photo-1551028719-00167b16eac5"],
-    ["https://images.unsplash.com/photo-1541099649105-f69ad21f3246", "https://images.unsplash.com/photo-1475178626620-a4d074967452"],
-    ["https://images.unsplash.com/photo-1620012253295-c05518e993be", "https://images.unsplash.com/photo-1602810318383-e386cc2a3ce3"],
-    ["https://images.unsplash.com/photo-1511499767150-a48a237f0083", "https://images.unsplash.com/photo-1572635196237-14b3f281503f"],
-    ["https://images.unsplash.com/photo-1516257984-b1b4d707412e", "https://images.unsplash.com/photo-1556821840-3a63f95609a7"],
-    ["https://images.unsplash.com/photo-1617137984095-74e4e5e3613f", "https://images.unsplash.com/photo-1559551409-dadc959f76b8"]
+    ["/images/products/product-1a.jpg", "/images/products/product-1b.jpg"],
+    ["/images/products/product-2a.jpg", "/images/products/product-2b.jpg"],
+    ["/images/products/product-3a.jpg", "/images/products/product-3b.jpg"],
+    ["/images/products/product-4a.jpg", "/images/products/product-4b.jpg"],
+    ["/images/products/product-5a.jpg", "/images/products/product-5b.jpg"],
+    ["/images/products/product-6a.jpg", "/images/products/product-6b.jpg"],
+    ["/images/products/product-7a.jpg", "/images/products/product-7b.jpg"]
   ];
 
   for (let i = 0; i < 20; i++) {
@@ -242,19 +242,38 @@ async function seed() {
     // 6. Seed Customer Order Histories and Reviews
     console.log("🟢 Seeding Customer Order Histories and Reviews...");
     const reviewsTemplates = [
+      // 5 Stars
       { rating: 5, comment: "Chất lượng sản phẩm tuyệt vời, phom dáng mặc rất tôn dáng, mặc rất thoải mái. Giao hàng cực kỳ nhanh chóng." },
       { rating: 5, comment: "Đóng gói sản phẩm rất đẹp và cẩn thận. Vải cotton 100% mềm mịn và mát mẻ. Xứng đáng 5 sao!" },
+      { rating: 5, comment: "Đồ của shop chưa bao giờ làm mình thất vọng. Chất vải cao cấp, cầm nặng tay, phom dáng mặc lên rất sang trọng." },
+      { rating: 5, comment: "Sản phẩm quá đẹp luôn ạ, đóng gói sang chảnh như hàng hiệu. Giao hàng cực nhanh, shipper thân thiện. Sẽ ủng hộ lâu dài!" },
+      { rating: 5, comment: "Đã nhận được hàng. Giao hàng nhanh khủng khiếp, hôm qua đặt hôm nay có luôn. Áo mặc vừa vặn, mát mẻ thích hợp cho mùa hè." },
+      { rating: 5, comment: "Áo đẹp phom chuẩn, đường may rất tỉ mỉ không có chỉ thừa. Vải cotton co giãn tốt. Rất hài lòng." },
+      { rating: 5, comment: "Rất ưng ý luôn! Form dáng đẹp xuất sắc, chất vải dày dặn xịn sò. Shop phục vụ rất nhiệt tình, tư vấn kỹ." },
+      
+      // 4 Stars
       { rating: 4, comment: "Áo đẹp, giống hệt như trong hình mô tả. Màu sắc chuẩn chỉnh, đường may chắc chắn. Sẽ mua thêm các màu khác." },
       { rating: 4, comment: "Giao hàng nhanh chóng. Chất vải sờ rất mịn, mặc mát và nhẹ, tuy nhiên phom áo hơi ôm một chút so với hình dung." },
-      { rating: 5, comment: "Rất ưng ý luôn! Form dáng đẹp xuất sắc, chất vải dày dặn xịn sò. Shop phục vụ rất nhiệt tình, tư vấn kỹ." },
-      { rating: 3, comment: "Sản phẩm ở mức tạm ổn, chất vải hơi mỏng một chút so với hình ảnh trên mạng. Giao hàng ở mức trung bình." }
+      { rating: 4, comment: "Chất lượng ổn áp so với tầm giá. Phom dáng đẹp nhưng vải hơi dày chút xíu, mặc mùa đông hoặc thu thì hợp hơn." },
+      { rating: 4, comment: "Mua lần thứ 2 của shop rồi, vải đẹp phom ổn. Lần này giao hàng hơi chậm hơn lần trước tí nhưng đóng gói vẫn rất cẩn thận." },
+      { rating: 4, comment: "Sản phẩm đẹp đúng mẫu. Giao hàng nhanh. Tuy nhiên màu sắc thực tế bên ngoài có vẻ hơi đậm hơn trên hình chụp một tông." },
+      { rating: 4, comment: "Vải co giãn mặc rất thoải mái, thấm hút mồ hôi tốt. Size L hơi rộng so với mình nhưng tổng thể vẫn rất đẹp." },
+      
+      // 3 Stars
+      { rating: 3, comment: "Sản phẩm ở mức tạm ổn, chất vải hơi mỏng một chút so với hình ảnh trên mạng. Giao hàng ở mức trung bình." },
+      { rating: 3, comment: "Đường may tạm được, chất vải hơi bình thường. Phù hợp mặc đi chơi thường ngày chứ không quá xuất sắc." },
+      { rating: 3, comment: "Giao hàng hơi chậm, áo có vài chỗ chỉ thừa phải tự cắt. Chất lượng chấp nhận được với giá tiền này." },
+      
+      // 2 Stars & 1 Star
+      { rating: 2, comment: "Phom áo không được đẹp như trên ảnh quảng cáo. Vải giặt xong hơi bị co lại một chút. Hơi thất vọng." },
+      { rating: 1, comment: "Giao sai size cho mình, liên hệ hỗ trợ đổi trả hơi lâu. Vải mặc bị bí mồ hôi, giặt lần đầu đã bị xơ lông." }
     ];
 
     const reviewImages = [
-      "https://images.unsplash.com/photo-1523381210434-271e8be1f52b",
-      "https://images.unsplash.com/photo-1543087903-1ac2ec7aa8c5",
-      "https://images.unsplash.com/photo-1509631179647-0177331693ae",
-      "https://images.unsplash.com/photo-1525507119028-ed4c629a60a3"
+      "/images/reviews/review-1.jpg",
+      "/images/reviews/review-2.jpg",
+      "/images/reviews/review-3.jpg",
+      "/images/reviews/review-4.jpg"
     ];
 
     // Create a deterministic completed order for customer1@gmail.com (index 0)
@@ -352,10 +371,10 @@ async function seed() {
 
     for (let c = 1; c < createdCustomers.length; c++) {
       const customer = createdCustomers[c];
-      const orderCount = Math.floor(Math.random() * 2) + 1; // 1 to 2 orders
+      const orderCount = Math.floor(Math.random() * 3) + 3; // 3 to 5 orders
       
       for (let o = 0; o < orderCount; o++) {
-        const randomItemsCount = Math.floor(Math.random() * 2) + 1; // 1 to 2 items
+        const randomItemsCount = Math.floor(Math.random() * 3) + 2; // 2 to 4 items
         const orderItems = [];
         let subtotal = 0;
 
@@ -449,8 +468,8 @@ async function seed() {
         // If the order was delivered, seed reviews for its items
         if (randomStatus === 'delivered') {
           for (const item of orderItems) {
-            // 70% probability of leaving a review
-            if (Math.random() > 0.3) {
+            // 90% probability of leaving a review
+            if (Math.random() > 0.1) {
               const template = reviewsTemplates[Math.floor(Math.random() * reviewsTemplates.length)];
               const hasImages = Math.random() > 0.5;
               const selectedImages = hasImages 

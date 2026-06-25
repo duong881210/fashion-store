@@ -6,10 +6,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/stores/useCartStore";
 import { trpc } from "@/lib/trpc";
-import { Trash2, Minus, Plus, ShoppingBag, ShieldCheck, RefreshCcw } from "lucide-react";
+import { Trash2, Minus, Plus, ShoppingBag, ShieldCheck, RefreshCcw, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import CouponSelector from "@/components/store/CouponSelector";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
@@ -21,25 +22,8 @@ export default function CartClient({ isLoggedIn }: { isLoggedIn: boolean }) {
   const removeItem = useCartStore((state) => state.removeItem);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const localTotal = useCartStore((state) => state.total);
+  const appliedCoupon = useCartStore((state) => state.appliedCoupon);
   const [mounted, setMounted] = useState(false);
-  const [couponCode, setCouponCode] = useState("");
-  const [discount, setDiscount] = useState({ value: 0, message: "", isError: false, code: "" });
-
-  const validateCoupon = trpc.coupon.validate.useMutation({
-    onSuccess: (data) => {
-      if (data.isValid) {
-        setDiscount({ value: data.discount, message: data.message, isError: false, code: couponCode });
-        toast.success(data.message);
-      } else {
-        setDiscount({ value: 0, message: data.message, isError: true, code: "" });
-        toast.error(data.message);
-      }
-    },
-    onError: (err) => {
-      setDiscount({ value: 0, message: err.message, isError: true, code: "" });
-      toast.error(err.message);
-    }
-  });
 
   const { mutate: backendRemoveItem } = trpc.cart.removeItem.useMutation({
     onError: (err) => toast.error(err.message || "Lỗi khi xóa sản phẩm")
@@ -71,12 +55,29 @@ export default function CartClient({ isLoggedIn }: { isLoggedIn: boolean }) {
 
 
   const subtotal = localTotal();
-  const total = subtotal - discount.value;
 
-  const handleApplyCoupon = () => {
-    if (!couponCode.trim()) return;
-    validateCoupon.mutate({ code: couponCode, orderValue: subtotal });
-  };
+  let discountValue = 0;
+  let couponMessage = "";
+  let isCouponError = false;
+
+  if (appliedCoupon) {
+    if (subtotal < appliedCoupon.minOrderValue) {
+      discountValue = 0;
+      couponMessage = `Đơn tối thiểu phải từ ${formatCurrency(appliedCoupon.minOrderValue)} để áp dụng mã này.`;
+      isCouponError = true;
+    } else {
+      if (appliedCoupon.type === "fixed") {
+        discountValue = appliedCoupon.value;
+      } else {
+        discountValue = Math.floor((subtotal * appliedCoupon.value) / 100);
+        if (appliedCoupon.maxDiscount && discountValue > appliedCoupon.maxDiscount) {
+          discountValue = appliedCoupon.maxDiscount;
+        }
+      }
+    }
+  }
+
+  const total = subtotal - discountValue;
 
   if (items.length === 0) {
     return (
@@ -187,10 +188,10 @@ export default function CartClient({ isLoggedIn }: { isLoggedIn: boolean }) {
               <span className="text-slate-500">Tạm tính</span>
               <span className="font-medium text-slate-900">{formatCurrency(subtotal)}</span>
             </div>
-            {discount.value > 0 && (
+            {discountValue > 0 && appliedCoupon && (
               <div className="flex justify-between text-green-600">
-                <span>Giảm giá ({discount.code})</span>
-                <span>-{formatCurrency(discount.value)}</span>
+                <span>Giảm giá ({appliedCoupon.code})</span>
+                <span>-{formatCurrency(discountValue)}</span>
               </div>
             )}
             <div className="flex justify-between">
@@ -199,7 +200,7 @@ export default function CartClient({ isLoggedIn }: { isLoggedIn: boolean }) {
             </div>
           </div>
 
-          <div className="border-t border-slate-200 py-6 mb-2">
+          <div className="border-t border-slate-200 py-6 mb-4">
             <div className="flex justify-between items-center mb-2">
               <span className="font-bold text-lg text-slate-900">Tổng cộng</span>
               <span className="font-bold text-2xl text-slate-900">{formatCurrency(total)}</span>
@@ -208,21 +209,11 @@ export default function CartClient({ isLoggedIn }: { isLoggedIn: boolean }) {
           </div>
 
           <div className="mb-8">
-            <div className="flex gap-2">
-              <Input 
-                placeholder="Mã giảm giá" 
-                value={couponCode} 
-                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                className={`bg-white ${discount.isError ? 'border-red-500' : ''}`}
-                onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
-              />
-              <Button variant="outline" onClick={handleApplyCoupon} disabled={validateCoupon.isPending}>
-                Áp dụng
-              </Button>
-            </div>
-            {discount.message && (
-              <p className={`text-xs mt-2 ${discount.isError ? 'text-red-500' : 'text-green-600'}`}>
-                {discount.message}
+            <CouponSelector orderValue={subtotal} isLoggedIn={isLoggedIn} />
+            {isCouponError && couponMessage && (
+              <p className="text-xs mt-2 text-red-500 font-medium bg-red-50/50 p-2.5 rounded-lg border border-red-100 flex items-center gap-1.5 animate-pulse">
+                <AlertCircle className="h-3.5 w-3.5" />
+                {couponMessage}
               </p>
             )}
           </div>

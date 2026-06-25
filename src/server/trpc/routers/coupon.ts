@@ -1,6 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod/v4';
-import { router, protectedProcedure, adminProcedure } from '../middleware';
+import { router, protectedProcedure, adminProcedure, publicProcedure } from '../middleware';
 import { Coupon } from '../../db/models/Coupon';
 import connectDB from '../../db';
 
@@ -50,6 +50,39 @@ export const couponRouter = router({
       }
       
       return { isValid: true, discount, message: 'Áp dụng thành công', couponId: coupon._id };
+    }),
+
+  listAvailable: publicProcedure
+    .query(async ({ ctx }) => {
+      await connectDB();
+      const userId = ctx.session?.user?.id;
+      const now = new Date();
+      
+      // Get all active, unexpired coupons
+      const coupons = await Coupon.find({
+        isActive: true,
+        expiresAt: { $gt: now },
+      }).sort({ minOrderValue: 1 }).lean();
+      
+      // Filter out coupons that have reached usage limit or have been used by the user
+      const availableCoupons = coupons.filter(coupon => {
+        const hasReachedLimit = coupon.usedCount >= coupon.usageLimit;
+        const hasUsed = userId ? coupon.usedBy.some(id => id.toString() === userId.toString()) : false;
+        return !hasReachedLimit && !hasUsed;
+      });
+      
+      return availableCoupons.map(coupon => ({
+        _id: coupon._id.toString(),
+        code: coupon.code,
+        type: coupon.type,
+        value: coupon.value,
+        minOrderValue: coupon.minOrderValue,
+        maxDiscount: coupon.maxDiscount,
+        expiresAt: coupon.expiresAt,
+        description: coupon.type === 'percentage' 
+          ? `Giảm ${coupon.value}%${coupon.maxDiscount ? ` (tối đa ${coupon.maxDiscount.toLocaleString()}đ)` : ''}` 
+          : `Giảm ${coupon.value.toLocaleString()}đ`
+      }));
     }),
 
   create: adminProcedure

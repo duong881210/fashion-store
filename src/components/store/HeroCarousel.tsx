@@ -18,7 +18,7 @@ export function HeroCarousel() {
       subtitle: "Bộ Sưu Tập Thu Đông", 
       cta: "Khám Phá Ngay", 
       link: "/products", 
-      image: "https://images.unsplash.com/photo-1617137968427-85924c800a22" 
+      image: "/images/banners/hero-1.jpg" 
     },
     { 
       id: 2, 
@@ -26,7 +26,7 @@ export function HeroCarousel() {
       subtitle: "Casual Minimalist", 
       cta: "Xem Sản Phẩm", 
       link: "/products", 
-      image: "https://images.unsplash.com/photo-1488161628813-04466f872be2" 
+      image: "/images/banners/hero-2.jpg" 
     },
     { 
       id: 3, 
@@ -34,7 +34,7 @@ export function HeroCarousel() {
       subtitle: "Streetwear X", 
       cta: "Mua Sắm Ngay", 
       link: "/products", 
-      image: "https://images.unsplash.com/photo-1516257984-b1b4d707412e" 
+      image: "/images/banners/hero-3.jpg" 
     },
   ];
 

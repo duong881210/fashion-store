@@ -26,6 +26,25 @@ function removeVietnameseTones(str: string): string {
   return str.toLowerCase();
 }
 
+function makeVietnameseRegex(text: string): string {
+  const base = text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd');
+  
+  let escaped = base.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  
+  return escaped
+    .replace(/a/g, '[aàáảãạăằắẳẵặâầấẩẫậ]')
+    .replace(/e/g, '[eèéẻẽẹêềếểễệ]')
+    .replace(/i/g, '[iìíỉĩị]')
+    .replace(/o/g, '[oòóỏõọôồốổỗộơờớởỡợ]')
+    .replace(/u/g, '[uùúủũụưừứửự]')
+    .replace(/y/g, '[yỳýỷỹỵ]')
+    .replace(/d/g, '[dđ]');
+}
+
 /**
  * Queries Gemini API to get an AI customer assistant response
  */
@@ -72,13 +91,18 @@ export async function getAIResponse(userId: string, userMessage: string, session
     }
 
     // 4. Find relevant products by keyword
-    const stopwords = ['co', 'khong', 'bao', 'nhieu', 'chua', 'cho', 'hoi', 'cua', 'hang', 'ban', 'toi', 'minh', 'em', 'shop', 'loai', 'mau', 'size', 'cai', 'chiec'];
+    const stopwords = [
+      'co', 'khong', 'bao', 'nhieu', 'chua', 'cho', 'hoi', 'cua', 'hang', 
+      'ban', 'toi', 'minh', 'em', 'shop', 'loai', 'mau', 'size', 'cai', 
+      'chiec', 'tu', 'van', 'di', 'that', 'xin', 'tim', 'mua', 'can', 
+      'giup', 'chao', 'dep', 'tot', 'va', 've', 'de', 'la', 'mot', 'cac', 'nhung'
+    ];
     const cleanText = removeVietnameseTones(userMessage);
     const words = cleanText.split(/\s+/).filter(w => w.length > 1 && !stopwords.includes(w));
 
     let products: any[] = [];
     if (words.length > 0) {
-      const regexQueries = words.map(w => ({ name: { $regex: w, $options: 'i' } }));
+      const regexQueries = words.map(w => ({ name: { $regex: makeVietnameseRegex(w), $options: 'i' } }));
       products = await Product.find({
         isPublished: true,
         $or: regexQueries
@@ -101,7 +125,7 @@ export async function getAIResponse(userId: string, userMessage: string, session
         const priceStr = p.salePrice 
           ? `${p.salePrice.toLocaleString('vi-VN')}đ (Giảm từ ${p.price.toLocaleString('vi-VN')}đ)` 
           : `${p.price.toLocaleString('vi-VN')}đ`;
-        return `- ${p.name}: Giá ${priceStr}. Đường dẫn xem: /products/${p.slug}`;
+        return `- [${p.name}](/products/${p.slug}): Giá ${priceStr}`;
       })
       .join('\n');
 
@@ -177,7 +201,10 @@ Nhiệm vụ của bạn:
         },
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 500,
+          maxOutputTokens: 1000,
+          thinkingConfig: {
+            thinkingBudget: 0
+          }
         }
       })
     });

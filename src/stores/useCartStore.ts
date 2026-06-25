@@ -13,6 +13,15 @@ interface CartStore {
   setIsOpen: (isOpen: boolean) => void;
   totalItems: () => number;
   setCart: (items: ICartItem[]) => void;
+  appliedCoupon: {
+    code: string;
+    type: 'percentage' | 'fixed';
+    value: number;
+    minOrderValue: number;
+    maxDiscount?: number;
+  } | null;
+  setAppliedCoupon: (coupon: CartStore['appliedCoupon']) => void;
+  clearAppliedCoupon: () => void;
 }
 
 export const useCartStore = create<CartStore>()(
@@ -64,11 +73,14 @@ export const useCartStore = create<CartStore>()(
         get().items.reduce((sum, item) => sum + item.price * item.quantity, 0),
       totalItems: () =>
         get().items.reduce((sum, item) => sum + item.quantity, 0),
+      appliedCoupon: null,
+      setAppliedCoupon: (coupon) => set({ appliedCoupon: coupon }),
+      clearAppliedCoupon: () => set({ appliedCoupon: null }),
     }),
     {
       name: 'fashion-cart-storage',
       // We explicitly avoid saving the 'isOpen' state so the cart doesn't automatically open on page reload
-      partialize: (state) => ({ items: state.items }),
+      partialize: (state) => ({ items: state.items, appliedCoupon: state.appliedCoupon }),
     }
   )
 );

@@ -9,11 +9,11 @@ import { Settings } from "@/server/db/models/Settings";
 
 // Sample Categories
 const categories = [
-  { name: 'Áo Thun', slug: 'ao-thun', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab' },
-  { name: 'Áo Khoác', slug: 'ao-khoac', image: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea' },
-  { name: 'Quần Jeans', slug: 'quan-jeans', image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246' },
-  { name: 'Áo Sơ Mi', slug: 'ao-so-mi', image: 'https://images.unsplash.com/photo-1620012253295-c05518e993be' },
-  { name: 'Phụ Kiện', slug: 'phu-kien', image: 'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f' }
+  { name: 'Áo Thun', slug: 'ao-thun', image: '/images/categories/ao-thun.jpg' },
+  { name: 'Áo Khoác', slug: 'ao-khoac', image: '/images/categories/ao-khoac.jpg' },
+  { name: 'Quần Jeans', slug: 'quan-jeans', image: '/images/categories/quan-jeans.jpg' },
+  { name: 'Áo Sơ Mi', slug: 'ao-so-mi', image: '/images/categories/ao-so-mi.jpg' },
+  { name: 'Phụ Kiện', slug: 'phu-kien', image: '/images/categories/phu-kien.jpg' }
 ];
 
 // Product Data Generator
@@ -26,13 +26,13 @@ const generateProducts = (categoryIds: any[]) => {
     "Thắt Lưng Da Thật", "Sneaker Trắng Cổ Thấp", "Áo Hoodie Nỉ Bông"
   ];
   const imagesList = [
-    ["https://images.unsplash.com/photo-1521572163474-6864f9cf17ab", "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a"],
-    ["https://images.unsplash.com/photo-1591047139829-d91aecb6caea", "https://images.unsplash.com/photo-1551028719-00167b16eac5"],
-    ["https://images.unsplash.com/photo-1541099649105-f69ad21f3246", "https://images.unsplash.com/photo-1475178626620-a4d074967452"],
-    ["https://images.unsplash.com/photo-1620012253295-c05518e993be", "https://images.unsplash.com/photo-1602810318383-e386cc2a3ce3"],
-    ["https://images.unsplash.com/photo-1511499767150-a48a237f0083", "https://images.unsplash.com/photo-1572635196237-14b3f281503f"],
-    ["https://images.unsplash.com/photo-1516257984-b1b4d707412e", "https://images.unsplash.com/photo-1556821840-3a63f95609a7"],
-    ["https://images.unsplash.com/photo-1617137984095-74e4e5e3613f", "https://images.unsplash.com/photo-1559551409-dadc959f76b8"]
+    ["/images/products/product-1a.jpg", "/images/products/product-1b.jpg"],
+    ["/images/products/product-2a.jpg", "/images/products/product-2b.jpg"],
+    ["/images/products/product-3a.jpg", "/images/products/product-3b.jpg"],
+    ["/images/products/product-4a.jpg", "/images/products/product-4b.jpg"],
+    ["/images/products/product-5a.jpg", "/images/products/product-5b.jpg"],
+    ["/images/products/product-6a.jpg", "/images/products/product-6b.jpg"],
+    ["/images/products/product-7a.jpg", "/images/products/product-7b.jpg"]
   ];
 
   for (let i = 0; i < 20; i++) {
