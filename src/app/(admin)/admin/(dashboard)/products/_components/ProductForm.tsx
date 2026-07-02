@@ -262,7 +262,8 @@ export function ProductForm({ initialData, categories }: { initialData?: any, ca
                <CldUploadWidget 
                  uploadPreset="products" 
                  onSuccess={(result: any) => {
-                   form.setValue('images', [...watchImages, result.info.secure_url], { shouldDirty: true });
+                   const currentImages = form.getValues('images') || [];
+                   form.setValue('images', [...currentImages, result.info.secure_url], { shouldDirty: true });
                    setUploadProgress(0);
                  }}
                  options={{ multiple: true }}
@@ -289,7 +290,10 @@ export function ProductForm({ initialData, categories }: { initialData?: any, ca
                              id={url} 
                              url={url} 
                              isFirst={i === 0}
-                             onRemove={() => form.setValue('images', watchImages.filter((u: string) => u !== url), { shouldDirty: true })} 
+                             onRemove={() => {
+                               const currentImages = form.getValues('images') || [];
+                               form.setValue('images', currentImages.filter((u: string) => u !== url), { shouldDirty: true });
+                             }} 
                            />
                          ))}
                        </div>

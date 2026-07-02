@@ -6,8 +6,25 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-# Copy project files and build
+# Copy project files
 COPY . .
+
+# Build arguments for Next.js public env variables
+ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
+ARG NEXT_PUBLIC_SOCKET_URL=http://localhost:3000
+ARG NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+ARG NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
+ARG MONGODB_URI
+
+# Set build-time env variables
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
+ENV NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=$NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+ENV NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=$NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
+ENV MONGODB_URI=$MONGODB_URI
+
+
+# Build the application
 RUN npm run build
 
 # Expose port and run start command
@@ -16,3 +33,4 @@ ENV PORT=3000
 ENV NODE_ENV=production
 
 CMD ["npm", "run", "start"]
+

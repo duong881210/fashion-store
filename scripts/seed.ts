@@ -236,7 +236,15 @@ async function seed() {
     console.log("🟢 Seeding 10 Customers...");
     const customersData = generateCustomers();
     const createdCustomers = await Promise.all(
-      customersData.map(userData => User.create(userData))
+      customersData.map(async (userData) => {
+        const user = await User.create(userData);
+        const randomDaysAgo = Math.floor(Math.random() * 25) + 15; // 15 to 39 days ago
+        const userDate = new Date();
+        userDate.setDate(userDate.getDate() - randomDaysAgo);
+        userDate.setHours(Math.floor(Math.random() * 24), Math.floor(Math.random() * 60), Math.floor(Math.random() * 60));
+        await User.collection.updateOne({ _id: user._id }, { $set: { createdAt: userDate, updatedAt: userDate } });
+        return user;
+      })
     );
 
     // 6. Seed Customer Order Histories and Reviews
@@ -285,6 +293,10 @@ async function seed() {
     const testProduct1 = createdProducts[0];
     const testProduct2 = createdProducts[1];
     
+    const testOrderDate = new Date();
+    testOrderDate.setDate(testOrderDate.getDate() - 10);
+    testOrderDate.setHours(10, 15, 30);
+
     const testOrder = new Order({
       customer: testCustomer._id,
       items: [
@@ -323,13 +335,18 @@ async function seed() {
       paymentStatus: 'paid',
       paymentMethod: 'cod',
       timeline: [
-        { status: 'pending', message: 'Đơn hàng được khởi tạo thành công', timestamp: new Date(Date.now() - 3600000 * 48) },
-        { status: 'delivered', message: 'Đơn hàng đã được giao thành công', timestamp: new Date(Date.now() - 3600000 * 2) }
+        { status: 'pending', message: 'Đơn hàng được khởi tạo thành công', timestamp: testOrderDate },
+        { status: 'delivered', message: 'Đơn hàng đã được giao thành công', timestamp: new Date(testOrderDate.getTime() + 3600000 * 36) }
       ]
     });
     await testOrder.save();
+    await Order.collection.updateOne({ _id: testOrder._id }, { $set: { createdAt: testOrderDate, updatedAt: testOrderDate } });
 
     // Create a pending order for Customer 1 as well
+    const testOrder2Date = new Date();
+    testOrder2Date.setDate(testOrder2Date.getDate() - 2);
+    testOrder2Date.setHours(14, 20, 10);
+
     const testOrder2 = new Order({
       customer: testCustomer._id,
       items: [
@@ -359,10 +376,11 @@ async function seed() {
       paymentStatus: 'unpaid',
       paymentMethod: 'cod',
       timeline: [
-        { status: 'pending', message: 'Đơn hàng được khởi tạo thành công', timestamp: new Date() }
+        { status: 'pending', message: 'Đơn hàng được khởi tạo thành công', timestamp: testOrder2Date }
       ]
     });
     await testOrder2.save();
+    await Order.collection.updateOne({ _id: testOrder2._id }, { $set: { createdAt: testOrder2Date, updatedAt: testOrder2Date } });
 
     // Now seed orders and reviews for all OTHER customers (index >= 1)
     const orderStatuses: Array<'pending' | 'confirmed' | 'processing' | 'shipping' | 'delivered' | 'cancelled'> = [
@@ -374,6 +392,11 @@ async function seed() {
       const orderCount = Math.floor(Math.random() * 3) + 3; // 3 to 5 orders
       
       for (let o = 0; o < orderCount; o++) {
+        const randomDaysAgo = Math.floor(Math.random() * 30); // 0 to 29 days ago
+        const orderDate = new Date();
+        orderDate.setDate(orderDate.getDate() - randomDaysAgo);
+        orderDate.setHours(Math.floor(Math.random() * 24), Math.floor(Math.random() * 60), Math.floor(Math.random() * 60));
+
         const randomItemsCount = Math.floor(Math.random() * 3) + 2; // 2 to 4 items
         const orderItems = [];
         let subtotal = 0;
@@ -420,7 +443,6 @@ async function seed() {
 
         const shippingFee = 30000;
         const total = Math.max(0, subtotal + shippingFee - discount);
-        // High probability of delivered orders so we get plenty of reviews
         const randomStatus = Math.random() > 0.35 ? 'delivered' : orderStatuses[Math.floor(Math.random() * orderStatuses.length)];
         const paymentMethod = Math.random() > 0.5 ? 'cod' : 'vnpay';
         const paymentStatus = (randomStatus === 'delivered' || (paymentMethod === 'vnpay' && randomStatus !== 'cancelled')) ? 'paid' : 'unpaid';
@@ -450,25 +472,30 @@ async function seed() {
             {
               status: 'pending',
               message: 'Đơn hàng được khởi tạo thành công',
-              timestamp: new Date(Date.now() - 3600000 * 24 * 3)
+              timestamp: orderDate
             }
           ]
         });
 
         if (randomStatus !== 'pending') {
+          const statusTime = new Date(orderDate);
+          statusTime.setHours(statusTime.getHours() + Math.floor(Math.random() * 48) + 12); // 12-60 hours later
+          if (statusTime > new Date()) {
+            statusTime.setTime(Date.now());
+          }
           order.timeline.push({
             status: randomStatus,
             message: `Đơn hàng chuyển sang trạng thái ${randomStatus}`,
-            timestamp: new Date(Date.now() - 3600000 * 24 * 1)
-          });
+            timestamp: statusTime
+          } as any);
         }
 
         const savedOrder = await order.save();
+        await Order.collection.updateOne({ _id: savedOrder._id }, { $set: { createdAt: orderDate, updatedAt: orderDate } });
 
         // If the order was delivered, seed reviews for its items
         if (randomStatus === 'delivered') {
           for (const item of orderItems) {
-            // 90% probability of leaving a review
             if (Math.random() > 0.1) {
               const template = reviewsTemplates[Math.floor(Math.random() * reviewsTemplates.length)];
               const hasImages = Math.random() > 0.5;
@@ -476,7 +503,7 @@ async function seed() {
                 ? [reviewImages[Math.floor(Math.random() * reviewImages.length)]]
                 : [];
 
-              await Review.create({
+              const review = await Review.create({
                 product: item.product,
                 customer: customer._id,
                 order: savedOrder._id,
@@ -485,6 +512,13 @@ async function seed() {
                 images: selectedImages,
                 isVerified: true
               });
+
+              const reviewDate = new Date(orderDate);
+              reviewDate.setDate(reviewDate.getDate() + Math.floor(Math.random() * 3) + 1);
+              if (reviewDate > new Date()) {
+                reviewDate.setTime(Date.now());
+              }
+              await Review.collection.updateOne({ _id: review._id }, { $set: { createdAt: reviewDate, updatedAt: reviewDate } });
             }
           }
         }

@@ -1,17 +1,25 @@
-version: '3.8'
-
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+        - NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL:-http://localhost:3000}
+        - NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}
+        - NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=${NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+        - MONGODB_URI=${MONGODB_URI}
     ports:
       - "3000:3000"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    env_file:
+      - .env.local
     environment:
       - NODE_ENV=production
-      - MONGODB_URI=mongodb://mongodb:27017/datn
-      - NEXTAUTH_URL=http://localhost:3000
-      - NEXT_PUBLIC_APP_URL=http://localhost:3000
-      - NEXT_PUBLIC_SOCKET_URL=http://localhost:3000
-      - PORT=3000
+      - MONGODB_URI=mongodb+srv://duongnt225300:duongnt225300@cluster0.nigpozu.mongodb.net/datn
+      - AUTH_TRUST_HOST=true
+      - AUTH_SECRET=${NEXTAUTH_SECRET}
     depends_on:
       - mongodb
 
@@ -24,3 +32,4 @@ services:
 
 volumes:
   mongodb_data:
+

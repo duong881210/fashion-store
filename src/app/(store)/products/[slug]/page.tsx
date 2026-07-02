@@ -10,15 +10,20 @@ import { ProductReviews } from "@/components/store/ProductReviews";
 import { RelatedProducts } from "@/components/store/RelatedProducts";
 
 export async function generateStaticParams() {
-  await connectDB();
-  // Fetch top products to statically generate at build
-  const topProducts = await Product.find({ isPublished: true })
-    .select('slug')
-    .sort({ sold: -1 })
-    .limit(100)
-    .lean();
-  
-  return topProducts.map(p => ({ slug: p.slug }));
+  try {
+    await connectDB();
+    // Fetch top products to statically generate at build
+    const topProducts = await Product.find({ isPublished: true })
+      .select('slug')
+      .sort({ sold: -1 })
+      .limit(100)
+      .lean();
+    
+    return topProducts.map(p => ({ slug: p.slug }));
+  } catch (error) {
+    console.warn("[generateStaticParams] DB connection failed, returning fallback empty array:", error);
+    return [];
+  }
 }
 
 export async function generateMetadata({ 

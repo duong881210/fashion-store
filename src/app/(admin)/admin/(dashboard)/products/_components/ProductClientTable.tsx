@@ -41,10 +41,10 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
       const params = new URLSearchParams(searchParams.toString());
       if (debouncedSearch) params.set('search', debouncedSearch);
       else params.delete('search');
-      
+
       // Reset page when search changes
       params.delete('page');
-      
+
       router.push(`${pathname}?${params.toString()}`);
     }
   }, [debouncedSearch, pathname, router, searchParams]);
@@ -91,12 +91,12 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          
+
           <Select value={categoryFilter} onValueChange={(v) => {
-             const params = new URLSearchParams(searchParams.toString());
-             if (v !== 'all') params.set('category', v); else params.delete('category');
-             params.set('page', '1');
-             router.push(`${pathname}?${params.toString()}`);
+            const params = new URLSearchParams(searchParams.toString());
+            if (v !== 'all') params.set('category', v); else params.delete('category');
+            params.set('page', '1');
+            router.push(`${pathname}?${params.toString()}`);
           }}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Danh mục" />
@@ -110,10 +110,10 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
           </Select>
 
           <Select value={statusFilter} onValueChange={(v) => {
-             const params = new URLSearchParams(searchParams.toString());
-             if (v !== 'all') params.set('status', v); else params.delete('status');
-             params.set('page', '1');
-             router.push(`${pathname}?${params.toString()}`);
+            const params = new URLSearchParams(searchParams.toString());
+            if (v !== 'all') params.set('status', v); else params.delete('status');
+            params.set('page', '1');
+            router.push(`${pathname}?${params.toString()}`);
           }}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Trạng thái" />
@@ -153,7 +153,7 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
           <TableHeader>
             <TableRow>
               <TableHead className="w-12">
-                <Checkbox 
+                <Checkbox
                   checked={selectedIds.length === data.products.length && data.products.length > 0}
                   onCheckedChange={toggleAll}
                 />
@@ -170,7 +170,7 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
             {data.products.map((product: any) => (
               <TableRow key={product._id}>
                 <TableCell>
-                  <Checkbox 
+                  <Checkbox
                     checked={selectedIds.includes(product._id)}
                     onCheckedChange={() => toggleOne(product._id)}
                   />
@@ -193,8 +193,14 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
                 <TableCell>{product.category?.name || 'N/A'}</TableCell>
                 <TableCell>
                   <div className="flex flex-col">
-                    <span className="font-medium">{product.price.toLocaleString('vi-VN')} đ</span>
-                    {product.salePrice && <span className="text-xs text-muted-foreground line-through">{product.salePrice.toLocaleString('vi-VN')} đ</span>}
+                    {product.salePrice ? (
+                      <>
+                        <span className="font-medium text-red-600">{product.salePrice.toLocaleString('vi-VN')} đ</span>
+                        <span className="text-xs text-slate-400 line-through">{product.price.toLocaleString('vi-VN')} đ</span>
+                      </>
+                    ) : (
+                      <span className="font-medium">{product.price.toLocaleString('vi-VN')} đ</span>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell>
@@ -249,9 +255,9 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
           Hiển thị trang {data.page} trên {Math.max(1, data.totalPages)}
         </p>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             disabled={page <= 1}
             onClick={() => {
               const params = new URLSearchParams(searchParams.toString());
@@ -261,8 +267,8 @@ export function ProductClientTable({ initialData, categories }: { initialData: a
           >
             Trước
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             disabled={page >= data.totalPages}
             onClick={() => {
