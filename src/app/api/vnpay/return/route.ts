@@ -82,6 +82,10 @@ export async function GET(req: NextRequest) {
       // Save order
       await order.save();
 
+      // Send confirmation email and notify admin via Socket
+      const { handleOrderPaymentSuccess } = await import('@/lib/order-helper');
+      await handleOrderPaymentSuccess(order);
+
       // Emit Socket.io notifications
       const io = (global as any).__io;
       if (io) {

@@ -26,13 +26,24 @@ const statusMap: Record<string, { label: string; color: string }> = {
   refund_requested: { label: "Chờ hoàn tiền", color: "bg-orange-100 text-orange-800" }
 };
 
-export default function OrdersClient({ initialData }: { initialData: { orders: any[]; totalPages: number } }) {
+export default function OrdersClient({ initialData }: { initialData: { orders: any[]; total: number; totalPages: number } }) {
   const router = useRouter();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedRefundOrder, setSelectedRefundOrder] = useState<any | null>(null);
   const { addItem } = useCartStore();
 
   const utils = trpc.useUtils();
+  const { data } = trpc.order.getMyOrders.useQuery(
+    { page: 1, limit: 10 },
+    {
+      initialData,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  const orders = data?.orders || [];
+
   const cancelOrder = trpc.order.cancel.useMutation({
     onSuccess: () => {
       toast.success("Hủy đơn hàng thành công");
@@ -92,7 +103,7 @@ export default function OrdersClient({ initialData }: { initialData: { orders: a
     }
   };
 
-  if (initialData.orders.length === 0) {
+  if (orders.length === 0) {
     return (
       <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center flex flex-col items-center">
         <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
@@ -109,7 +120,7 @@ export default function OrdersClient({ initialData }: { initialData: { orders: a
 
   return (
     <div className="space-y-6">
-      {initialData.orders.map((order) => {
+      {orders.map((order: any) => {
         const isExpanded = expandedId === order._id;
         const statusInfo = statusMap[order.status] || { label: order.status, color: "bg-slate-100 text-slate-800" };
 

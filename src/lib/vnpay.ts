@@ -1,4 +1,4 @@
-import { VNPay, VnpLocale, ProductCode } from 'vnpay';
+import { VNPay, VnpLocale, ProductCode, dateFormat } from 'vnpay';
 
 const tmnCode = process.env.VNPAY_TMN_CODE || '';
 const secureSecret = process.env.VNPAY_HASH_SECRET || '';
@@ -27,8 +27,9 @@ export interface CreatePaymentParams {
  * Generates the redirect URL for VNPAY payment
  */
 export function createPaymentUrl(params: CreatePaymentParams): string {
-  // Use date-fns formatting or let the library handle vnp_CreateDate and vnp_ExpireDate.
-  // The 'vnpay' library automatically sets vnp_CreateDate and vnp_ExpireDate if not provided.
+  const createDate = new Date();
+  const expireDate = new Date(createDate.getTime() + 15 * 60 * 1000); // 15 minutes later
+
   return vnpayClient.buildPaymentUrl({
     vnp_Amount: params.amount,
     vnp_IpAddr: params.ipAddr,
@@ -37,6 +38,8 @@ export function createPaymentUrl(params: CreatePaymentParams): string {
     vnp_OrderType: ProductCode.Fashion,
     vnp_ReturnUrl: params.returnUrl,
     vnp_Locale: params.locale === 'en' ? VnpLocale.EN : VnpLocale.VN,
+    vnp_CreateDate: dateFormat(createDate),
+    vnp_ExpireDate: dateFormat(expireDate),
   });
 }
 

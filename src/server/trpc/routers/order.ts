@@ -156,38 +156,41 @@ export const orderRouter = router({
         session.endSession();
         invalidateProductCaches();
 
-        // Send order confirmation email (fire-and-forget)
-        User.findById(userId).then((user) => {
-          if (user && user.email) {
-            sendEmail(
-              user.email,
-              `Xác nhận đơn hàng #${order.orderCode} | Fashion Store`,
-              orderConfirmedTemplate({
-                customerName: input.shippingAddress.fullName,
-                orderCode: order.orderCode,
-                orderId: order._id.toString(),
-                items: orderItems,
-                subtotal,
-                shippingFee,
-                discount,
-                total,
-                shippingAddress: input.shippingAddress,
-                paymentMethod: input.paymentMethod,
-              })
-            );
-          }
-        }).catch((err) => {
-          console.error('[Email Trigger Error in Order Creation]', err);
-        });
+        // Only send order confirmation email and emit socket notifications immediately if COD.
+        // For online payment (VNPay), these will be sent/emitted after successful payment.
+        if (input.paymentMethod === 'cod') {
+          User.findById(userId).then((user) => {
+            if (user && user.email) {
+              sendEmail(
+                user.email,
+                `Xác nhận đơn hàng #${order.orderCode} | Fashion Store`,
+                orderConfirmedTemplate({
+                  customerName: input.shippingAddress.fullName,
+                  orderCode: order.orderCode,
+                  orderId: order._id.toString(),
+                  items: orderItems,
+                  subtotal,
+                  shippingFee,
+                  discount,
+                  total,
+                  shippingAddress: input.shippingAddress,
+                  paymentMethod: input.paymentMethod,
+                })
+              );
+            }
+          }).catch((err) => {
+            console.error('[Email Trigger Error in Order Creation]', err);
+          });
 
-        // Emit new order to admin
-        ctx.io?.to('admin_room').emit('order:new', {
-          orderId: order._id.toString(),
-          orderCode: order.orderCode,
-          customerName: input.shippingAddress.fullName,
-          total,
-          createdAt: (order as any).createdAt?.toISOString() || new Date().toISOString()
-        });
+          // Emit new order to admin
+          ctx.io?.to('admin_room').emit('order:new', {
+            orderId: order._id.toString(),
+            orderCode: order.orderCode,
+            customerName: input.shippingAddress.fullName,
+            total,
+            createdAt: (order as any).createdAt?.toISOString() || new Date().toISOString()
+          });
+        }
 
         return { orderId: order._id, orderCode: order.orderCode, paymentMethod: input.paymentMethod, total };
       } catch (error: any) {

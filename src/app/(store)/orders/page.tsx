@@ -18,7 +18,7 @@ export default async function OrdersPage() {
   const ctx = await createTRPCContext();
   const caller = typeof appRouter.createCaller === 'function' ? appRouter.createCaller(ctx) : (appRouter as any)(ctx);
   
-  let initialData = { orders: [], totalPages: 0 };
+  let initialData = { orders: [], total: 0, totalPages: 0 };
   try {
     initialData = await caller.order.getMyOrders({ page: 1, limit: 10 });
   } catch (e) {

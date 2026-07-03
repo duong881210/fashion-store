@@ -23,6 +23,9 @@ export default function Navbar() {
   const cartItemCount = items.reduce((acc, item) => acc + item.quantity, 0);
   const { openCartSidebar } = useUIStore();
   const { data: session } = useSession();
+  const { data: profile } = trpc.user.getProfile.useQuery(undefined, {
+    enabled: !!session,
+  });
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -266,9 +269,9 @@ export default function Navbar() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={session.user?.image || ""} alt={session.user?.name || "User"} />
+                    <AvatarImage src={profile?.avatar || session.user?.image || ""} alt={profile?.name || session.user?.name || "User"} />
                     <AvatarFallback className="bg-primary/10">
-                      {session.user?.name ? session.user.name.charAt(0).toUpperCase() : "U"}
+                      {(profile?.name || session.user?.name) ? (profile?.name || session.user.name).charAt(0).toUpperCase() : "U"}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
