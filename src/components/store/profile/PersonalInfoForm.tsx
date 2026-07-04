@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { CldUploadWidget } from 'next-cloudinary';
 import Image from 'next/image';
 import { Camera, User } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 
 const localUpdateProfileSchema = z.object({
   name: z.string().min(2, 'Tên phải có ít nhất 2 ký tự').max(50),
@@ -67,11 +68,11 @@ export default function PersonalInfoForm({ profile }: { profile: any }) {
         <p className="text-gray-500 text-sm mb-6">Cập nhật thông tin cá nhân của bạn tại đây.</p>
       </div>
       <Form {...form}>
-        <form 
+        <form
           onSubmit={form.handleSubmit(onSubmit, (errors) => {
             console.error("Form validation failed:", errors);
             toast.error("Vui lòng kiểm tra lại thông tin nhập vào");
-          })} 
+          })}
           className="space-y-6"
         >
           <FormField
@@ -149,6 +150,12 @@ export default function PersonalInfoForm({ profile }: { profile: any }) {
               </FormItem>
             )}
           />
+
+          <div className="space-y-2">
+            <Label>Địa chỉ email</Label>
+            <Input value={profile?.email || ''} disabled className="bg-slate-50 cursor-not-allowed text-slate-500 border-slate-200" />
+            <p className="text-xs text-slate-400">Email dùng để đăng nhập và nhận thông tin đơn hàng.</p>
+          </div>
 
           <FormField
             control={form.control}

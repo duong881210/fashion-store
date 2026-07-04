@@ -22,7 +22,7 @@ export const userRouter = router({
     .input(registerSchema)
     .mutation(async ({ input }) => {
       await connectDB();
-      
+
       const existingUser = await User.findOne({ email: input.email });
       if (existingUser) {
         throw new TRPCError({
@@ -114,7 +114,7 @@ export const userRouter = router({
 
       user.addresses.push(input as any);
       await user.save();
-      
+
       return user.addresses;
     }),
 
@@ -174,12 +174,12 @@ export const userRouter = router({
       await connectDB();
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      
+
       const count = await User.countDocuments({
         createdAt: { $gte: sevenDaysAgo },
         role: 'customer'
       });
-      
+
       return count;
     }),
 
@@ -206,7 +206,7 @@ export const userRouter = router({
 
       // Fetch order stats for these users
       const userIds = users.map(u => u._id);
-      
+
       let userStats = [];
       if (Order && userIds.length > 0) {
         userStats = await Order.aggregate([
@@ -226,11 +226,19 @@ export const userRouter = router({
         return acc;
       }, {});
 
-      const usersWithStats = users.map(user => ({
-        ...user,
-        ordersCount: statsMap[user._id.toString()]?.ordersCount || 0,
-        totalSpent: statsMap[user._id.toString()]?.totalSpent || 0
-      }));
+      const io = (global as any).__io;
+
+      const usersWithStats = users.map(user => {
+        const userIdStr = user._id.toString();
+        const isOnline = io ? io.sockets.adapter.rooms.has(`user_${userIdStr}`) : false;
+
+        return {
+          ...user,
+          isOnline,
+          ordersCount: statsMap[userIdStr]?.ordersCount || 0,
+          totalSpent: statsMap[userIdStr]?.totalSpent || 0
+        };
+      });
 
       return {
         users: JSON.parse(JSON.stringify(usersWithStats)),

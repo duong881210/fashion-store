@@ -132,9 +132,23 @@ export function CustomerClientTable({ initialData }: CustomerClientTableProps) {
                       {format(new Date(user.createdAt), 'dd/MM/yyyy')}
                     </td>
                     <td className="py-4 px-6 text-center">
-                      <Badge variant={user.isActive !== false ? "default" : "destructive"} className={user.isActive !== false ? "bg-emerald-500 hover:bg-emerald-600 font-normal" : "font-normal"}>
-                        {user.isActive !== false ? "Hoạt động" : "Bị khóa"}
-                      </Badge>
+                      {user.isActive === false ? (
+                        <Badge variant="destructive" className="font-normal">
+                          Bị khóa
+                        </Badge>
+                      ) : user.isOnline ? (
+                        <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600 font-normal flex items-center gap-1.5 justify-center w-20 mx-auto">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                          </span>
+                          Online
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-500 font-normal border border-slate-200 w-20 justify-center mx-auto">
+                          Offline
+                        </Badge>
+                      )}
                     </td>
                     <td className="py-4 px-6 text-right">
                       <DropdownMenu>
