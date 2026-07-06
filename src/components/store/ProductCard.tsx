@@ -11,6 +11,7 @@ import { useCartStore } from "@/stores/useCartStore";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
+import { AuthRequiredModal } from "./AuthRequiredModal";
 
 // Type definition based on trpc output for IProduct
 export interface ProductCardProps {
@@ -40,6 +41,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const { data: session } = useSession();
   const [imgSrc, setImgSrc] = useState(product.images[0] || "/placeholder.svg");
   const [imgSrc2, setImgSrc2] = useState(product.images[1] || null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const toggleWishlist = trpc.user?.toggleWishlist?.useMutation({
     onSuccess: () => setIsWishlisted(!isWishlisted)
@@ -72,6 +74,11 @@ export function ProductCard({ product }: ProductCardProps) {
     e.preventDefault();
     e.stopPropagation();
     if (isOutOfStock) return;
+
+    if (!session) {
+      setIsAuthModalOpen(true);
+      return;
+    }
 
     // For products with variants, ideally we open a modal or navigate to detail page.
     // For now, if there's only 1 default size, we can add it directly. 
@@ -213,6 +220,7 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
         </div>
       </div>
+      <AuthRequiredModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </div>
   );
 }

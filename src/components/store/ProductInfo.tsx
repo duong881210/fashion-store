@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } 
 import { useSession } from "next-auth/react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { AuthRequiredModal } from "./AuthRequiredModal";
 
 // Represents the data structure passed down from the product query
 interface ProductInfoProps {
@@ -48,6 +49,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
   const [selectedColor, setSelectedColor] = useState(product.variants?.[0]?.color || '');
   const [selectedSize, setSelectedSize] = useState('');
   const [quantity, setQuantity] = useState(1);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // Derive contextual data from variants
   const activeVariant = product.variants?.find(v => v.color === selectedColor);
@@ -63,6 +65,10 @@ export function ProductInfo({ product }: ProductInfoProps) {
     : null;
 
   const handleAddToCart = () => {
+    if (!session) {
+      setIsAuthModalOpen(true);
+      return;
+    }
     if (!selectedSize) {
       toast.error("Vui lòng chọn kích thước");
       return;
@@ -92,6 +98,10 @@ export function ProductInfo({ product }: ProductInfoProps) {
   };
 
   const handleBuyNow = () => {
+    if (!session) {
+      setIsAuthModalOpen(true);
+      return;
+    }
     handleAddToCart();
     if (selectedSize && !isOutOfStock) {
       router.push("/checkout"); // Assumes this route exist
@@ -315,6 +325,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
           </div>
         </div>
       </div>
+      <AuthRequiredModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </div>
   );
 }

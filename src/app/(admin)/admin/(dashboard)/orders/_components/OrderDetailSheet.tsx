@@ -58,6 +58,8 @@ export function OrderDetailSheet({ order, isOpen, onClose, onUpdate }: OrderDeta
 
   if (!order) return null;
 
+  const isVnpayUnpaid = order.paymentMethod === 'vnpay' && paymentStatus === 'unpaid';
+
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Đã sao chép vào clipboard");
@@ -222,18 +224,28 @@ export function OrderDetailSheet({ order, isOpen, onClose, onUpdate }: OrderDeta
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pending">Chờ xử lý</SelectItem>
-                    <SelectItem value="confirmed">Đã xác nhận</SelectItem>
-                    <SelectItem value="processing">Đang xử lý</SelectItem>
-                    <SelectItem value="shipping">Đang giao</SelectItem>
-                    <SelectItem value="delivered">Đã giao</SelectItem>
+                    <SelectItem value="confirmed" disabled={isVnpayUnpaid}>Đã xác nhận</SelectItem>
+                    <SelectItem value="processing" disabled={isVnpayUnpaid}>Đang xử lý</SelectItem>
+                    <SelectItem value="shipping" disabled={isVnpayUnpaid}>Đang giao</SelectItem>
+                    <SelectItem value="delivered" disabled={isVnpayUnpaid}>Đã giao</SelectItem>
                     <SelectItem value="cancelled">Đã hủy</SelectItem>
-                    <SelectItem value="refunded">Hoàn tiền</SelectItem>
+                    <SelectItem value="refunded" disabled={isVnpayUnpaid}>Hoàn tiền</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <label className="text-xs text-muted-foreground">Trạng thái thanh toán</label>
-                <Select value={paymentStatus} onValueChange={setPaymentStatus}>
+                <Select 
+                  value={paymentStatus} 
+                  onValueChange={(val) => {
+                    setPaymentStatus(val);
+                    if (order.paymentMethod === 'vnpay' && val === 'unpaid') {
+                      if (status !== 'pending' && status !== 'cancelled') {
+                        setStatus('pending');
+                      }
+                    }
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Chọn trạng thái" />
                   </SelectTrigger>
@@ -244,6 +256,13 @@ export function OrderDetailSheet({ order, isOpen, onClose, onUpdate }: OrderDeta
                   </SelectContent>
                 </Select>
               </div>
+              {isVnpayUnpaid && (
+                <div className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200 leading-relaxed">
+                  ⚠️ Đơn hàng thanh toán qua VNPay chưa được thanh toán thành công.
+                  Trạng thái giao hàng phải ở mức "Chờ xử lý" hoặc "Đã hủy".
+                  Nếu bạn muốn giao hàng, vui lòng cập nhật trạng thái thanh toán thành "Đã thanh toán" trước.
+                </div>
+              )}
               <Button 
                 className="w-full" 
                 onClick={handleUpdate}
