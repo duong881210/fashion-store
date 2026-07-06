@@ -53,6 +53,24 @@ export const orderRouter = router({
       session.startTransaction();
 
       try {
+        // Pre-validate stock for all items
+        for (const item of cart.items) {
+          const product = await Product.findById(item.product).session(session);
+          if (!product) {
+            throw new Error(`Sản phẩm ${item.productName} không tồn tại.`);
+          }
+          
+          const variant = product.variants.find((v: any) => v.color === item.color);
+          if (!variant) {
+            throw new Error(`Sản phẩm ${item.productName} không có màu ${item.color}.`);
+          }
+          
+          const sizeObj = variant.sizes.find((s: any) => s.size === item.size);
+          if (!sizeObj || sizeObj.stock < item.quantity) {
+            throw new Error('Số lượng sản phẩm trong kho không đủ');
+          }
+        }
+
         let subtotal = 0;
         const orderItems: any[] = [];
 
@@ -61,11 +79,15 @@ export const orderRouter = router({
           const product = await Product.findOneAndUpdate(
             { 
               _id: item.product, 
-              'variants.color': item.color,
-              'variants.sizes': {
+              variants: {
                 $elemMatch: {
-                  size: item.size,
-                  stock: { $gte: item.quantity }
+                  color: item.color,
+                  sizes: {
+                    $elemMatch: {
+                      size: item.size,
+                      stock: { $gte: item.quantity }
+                    }
+                  }
                 }
               }
             },
@@ -86,7 +108,7 @@ export const orderRouter = router({
           );
 
           if (!product) {
-            throw new Error(`Sản phẩm ${item.productName} không đủ số lượng hoặc đã hết hàng.`);
+            throw new Error('Số lượng sản phẩm trong kho không đủ');
           }
 
           const price = product.salePrice || product.price;
@@ -359,7 +381,19 @@ export const orderRouter = router({
       await connectDB();
       const order = await Order.findById(input.id);
       if (!order) throw new TRPCError({ code: 'NOT_FOUND' });
-      
+
+      const newStatus = input.status || order.status;
+      const newPaymentStatus = input.paymentStatus || order.paymentStatus;
+
+      if (order.paymentMethod === 'vnpay' && newPaymentStatus === 'unpaid') {
+        if (newStatus !== 'pending' && newStatus !== 'cancelled') {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Đơn hàng thanh toán qua VNPay chưa hoàn tất thanh toán. Trạng thái giao hàng phải ở mức "Chờ xử lý" hoặc "Đã hủy".'
+          });
+        }
+      }
+
       const oldStatus = order.status;
 
       if (input.status && order.status !== input.status) {

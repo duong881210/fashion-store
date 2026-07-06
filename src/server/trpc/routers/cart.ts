@@ -17,15 +17,19 @@ export const cartRouter = router({
 
     const checkedItems = await Promise.all(cart.items.map(async (item: any) => {
       const product = await Product.findById(item.product).lean();
-      if (!product) return { ...item, outOfStock: true };
+      if (!product) return { ...item, outOfStock: true, stock: 0 };
       
       const variant = product.variants?.find((v: any) => v.color === item.color);
-      if (!variant) return { ...item, outOfStock: true };
+      if (!variant) return { ...item, outOfStock: true, stock: 0 };
       
       const sizeObj = variant.sizes.find((s: any) => s.size === item.size);
-      if (!sizeObj || sizeObj.stock < 1) return { ...item, outOfStock: true };
+      if (!sizeObj || sizeObj.stock < 1) return { ...item, outOfStock: true, stock: 0 };
       
-      return { ...item, outOfStock: sizeObj.stock < item.quantity };
+      return { 
+        ...item, 
+        stock: sizeObj.stock,
+        outOfStock: sizeObj.stock < item.quantity 
+      };
     }));
 
     return { ...cart, items: checkedItems };

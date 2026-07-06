@@ -282,7 +282,17 @@ export function ProductInfo({ product }: ProductInfoProps) {
           <button 
             type="button" 
             className="w-10 flex items-center justify-center text-slate-500 hover:text-slate-900"
-            onClick={() => setQuantity(Math.min(maxStock, quantity + 1))}
+            onClick={() => {
+              if (!selectedSize) {
+                toast.error("Vui lòng chọn kích thước trước");
+                return;
+              }
+              if (quantity >= maxStock) {
+                toast.warning("Số lượng sản phẩm trong kho không đủ");
+              } else {
+                setQuantity(quantity + 1);
+              }
+            }}
           >
             <Plus className="w-4 h-4" />
           </button>

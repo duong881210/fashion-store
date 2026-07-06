@@ -63,7 +63,7 @@ export const useCartStore = create<CartStore>()(
         set((state) => ({
           items: state.items.map((i) =>
             i.product === productId && i.color === color && i.size === size
-              ? { ...i, quantity: qty }
+              ? { ...i, quantity: qty, outOfStock: i.stock !== undefined ? qty > i.stock : i.outOfStock }
               : i
           ),
         })),

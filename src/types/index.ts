@@ -70,6 +70,8 @@ export interface ICartItem {
   price: number;
   name: string;
   image: string;
+  outOfStock?: boolean;
+  stock?: number;
 }
 
 export interface ICategory {

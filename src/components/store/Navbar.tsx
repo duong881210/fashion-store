@@ -116,7 +116,9 @@ export default function Navbar() {
         image: item.productImage,
         color: item.color,
         size: item.size,
-        quantity: item.quantity
+        quantity: item.quantity,
+        outOfStock: item.outOfStock,
+        stock: item.stock
       }));
       setCart(formattedItems);
     }

@@ -36,6 +36,8 @@ export default function CheckoutClient({ profile }: { profile: any }) {
 
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "vnpay">("cod");
 
+  const utils = trpc.useUtils();
+
   const createOrder = trpc.order.create.useMutation({
     onSuccess: async (data) => {
       clearCart();
@@ -68,6 +70,7 @@ export default function CheckoutClient({ profile }: { profile: any }) {
     },
     onError: (error) => {
       toast.error(error.message || "Đã xảy ra lỗi khi tạo đơn hàng");
+      utils.cart.get.invalidate();
     }
   });
 

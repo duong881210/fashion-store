@@ -25,12 +25,26 @@ export default function CartClient({ isLoggedIn }: { isLoggedIn: boolean }) {
   const appliedCoupon = useCartStore((state) => state.appliedCoupon);
   const [mounted, setMounted] = useState(false);
 
+  const utils = trpc.useUtils();
+
   const { mutate: backendRemoveItem } = trpc.cart.removeItem.useMutation({
-    onError: (err) => toast.error(err.message || "Lỗi khi xóa sản phẩm")
+    onSuccess: () => {
+      utils.cart.get.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Lỗi khi xóa sản phẩm");
+      utils.cart.get.invalidate();
+    }
   });
   
   const { mutate: backendUpdateQuantity } = trpc.cart.updateQuantity.useMutation({
-    onError: (err) => toast.error(err.message || "Lỗi khi cập nhật số lượng")
+    onSuccess: () => {
+      utils.cart.get.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Lỗi khi cập nhật số lượng");
+      utils.cart.get.invalidate();
+    }
   });
 
   const handleRemoveItem = (productId: string, color: string, size: string) => {
@@ -55,6 +69,7 @@ export default function CartClient({ isLoggedIn }: { isLoggedIn: boolean }) {
 
 
   const subtotal = localTotal();
+  const hasOutOfStockItems = items.some((item: any) => item.outOfStock);
 
   let discountValue = 0;
   let couponMessage = "";
@@ -140,6 +155,12 @@ export default function CartClient({ isLoggedIn }: { isLoggedIn: boolean }) {
                     <p>Màu sắc: <span className="font-medium text-slate-900">{item.color}</span></p>
                     <p>Size: <span className="font-medium text-slate-900">{item.size}</span></p>
                     <p className="font-medium text-slate-900">{formatCurrency(item.price)}</p>
+                    {item.outOfStock && (
+                      <div className="mt-2 text-xs text-red-500 font-semibold bg-red-50 p-2 rounded-lg border border-red-100 flex items-center gap-1.5 w-fit">
+                        <AlertCircle className="h-3.5 w-3.5 animate-pulse" />
+                        Không đủ số lượng trong kho
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -153,8 +174,9 @@ export default function CartClient({ isLoggedIn }: { isLoggedIn: boolean }) {
                     </button>
                     <span className="w-10 text-center font-medium text-sm">{item.quantity}</span>
                     <button 
-                      className="p-2 hover:bg-slate-50 text-slate-600 transition-colors"
+                      className="p-2 hover:bg-slate-50 text-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={() => handleUpdateQuantity(item.product, item.color, item.size, item.quantity + 1)}
+                      disabled={item.stock !== undefined && item.quantity >= item.stock}
                     >
                       <Plus className="h-4 w-4" />
                     </button>
@@ -221,8 +243,9 @@ export default function CartClient({ isLoggedIn }: { isLoggedIn: boolean }) {
           <Button 
             className="w-full h-14 text-lg bg-slate-900 hover:bg-slate-800 text-white mb-6 shadow-xl shadow-slate-200"
             onClick={() => router.push(isLoggedIn ? '/checkout' : '/login?callbackUrl=/checkout')}
+            disabled={hasOutOfStockItems}
           >
-            Tiến hành thanh toán
+            {hasOutOfStockItems ? "Có sản phẩm vượt quá tồn kho" : "Tiến hành thanh toán"}
           </Button>
 
           <div className="space-y-3">
