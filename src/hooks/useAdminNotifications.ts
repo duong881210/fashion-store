@@ -6,7 +6,7 @@ import { useNotificationStore } from '@/stores/useNotificationStore';
 import { toast } from 'sonner';
 
 export function useAdminNotifications() {
-  const socket = useSocket();
+  const { socket } = useSocket();
   const addNotification = useNotificationStore((state) => state.addNotification);
   
   // Use a ref to ensure audio object is only created on client

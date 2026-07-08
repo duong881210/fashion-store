@@ -4,11 +4,17 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import { io, Socket } from 'socket.io-client';
 import { useSession } from 'next-auth/react';
 
-const SocketContext = createContext<Socket | null>(null);
+export interface SocketContextType {
+  socket: Socket | null;
+  isConnected: boolean;
+}
+
+const SocketContext = createContext<SocketContextType>({ socket: null, isConnected: false });
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -19,14 +25,35 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       reconnectionDelay: 1000,
     });
 
+    setIsConnected(socketInstance.connected);
+
+    socketInstance.on('connect', () => {
+      setIsConnected(true);
+    });
+
+    socketInstance.on('disconnect', () => {
+      setIsConnected(false);
+    });
+
+    socketInstance.on('connect_error', () => {
+      setIsConnected(false);
+    });
+
     setSocket(socketInstance);
 
     return () => {
+      socketInstance.off('connect');
+      socketInstance.off('disconnect');
+      socketInstance.off('connect_error');
       socketInstance.disconnect();
     };
   }, [session]);
 
-  return <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>;
+  return (
+    <SocketContext.Provider value={{ socket, isConnected }}>
+      {children}
+    </SocketContext.Provider>
+  );
 }
 
 export const useSocket = () => useContext(SocketContext);

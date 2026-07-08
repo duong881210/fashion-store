@@ -23,7 +23,7 @@ interface Message {
 export function ChatWidget() {
   const { data: session } = useSession();
   const pathname = usePathname();
-  const socket = useSocket();
+  const { socket, isConnected } = useSocket();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -187,13 +187,20 @@ export function ChatWidget() {
           {/* Header */}
           <div className="bg-primary text-primary-foreground p-4 flex justify-between items-center shrink-0">
             <div className="flex items-center gap-2">
-              <div className="h-2.5 w-2.5 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="font-medium">Hỗ trợ khách hàng</span>
+              <div className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-red-500'}`}></div>
+              <span className="font-medium">{isConnected ? 'Hỗ trợ khách hàng' : 'Mất kết nối'}</span>
             </div>
             <button onClick={() => setIsOpen(false)} className="text-primary-foreground/80 hover:text-white transition-colors">
               <X size={20} />
             </button>
           </div>
+
+          {/* Connection warning bar */}
+          {!isConnected && (
+            <div className="bg-red-500 text-white text-[11px] px-4 py-2 text-center font-medium shrink-0 animate-in fade-in duration-300">
+              ⚠️ Mất kết nối. Đang kết nối lại...
+            </div>
+          )}
 
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-muted/30">
@@ -265,12 +272,13 @@ export function ChatWidget() {
                 value={inputValue}
                 onChange={handleInputChange}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="Nhập tin nhắn..."
-                className="flex-1 bg-transparent border-none focus:outline-none text-sm py-2"
+                placeholder={isConnected ? "Nhập tin nhắn..." : "Mất kết nối..."}
+                disabled={!isConnected}
+                className="flex-1 bg-transparent border-none focus:outline-none text-sm py-2 disabled:opacity-50"
               />
               <button
                 onClick={handleSend}
-                disabled={!inputValue.trim()}
+                disabled={!inputValue.trim() || !isConnected}
                 className="h-8 w-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center disabled:opacity-50 disabled:bg-muted-foreground shrink-0 transition-transform active:scale-95"
               >
                 <Send size={14} className="ml-0.5" />

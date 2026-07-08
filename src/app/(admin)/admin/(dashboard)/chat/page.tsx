@@ -17,7 +17,7 @@ import { vi } from 'date-fns/locale';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 
 export default function AdminChatPage() {
-  const socket = useSocket();
+  const { socket, isConnected } = useSocket();
   const utils = trpc.useUtils();
   const resetChatUnread = useNotificationStore(state => state.resetChatUnread);
 
@@ -245,7 +245,10 @@ export default function AdminChatPage() {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h2 className="font-semibold text-sm">{activeSessionDetails?.customer?.name || 'Khách Vãng Lai'}</h2>
+                  <h2 className="font-semibold text-sm flex items-center gap-2">
+                    {activeSessionDetails?.customer?.name || 'Khách Vãng Lai'}
+                    <span className={`inline-block h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`} title={isConnected ? 'Đã kết nối Socket' : 'Mất kết nối Socket'}></span>
+                  </h2>
                   <p className="text-xs text-muted-foreground">{activeSessionDetails?.customer?.email || 'Chưa cập nhật email'}</p>
                 </div>
               </div>
@@ -257,6 +260,13 @@ export default function AdminChatPage() {
                 </Button>
               </div>
             </div>
+
+            {/* Connection warning bar */}
+            {!isConnected && (
+              <div className="bg-destructive text-destructive-foreground text-xs px-6 py-2.5 flex items-center justify-between shrink-0 font-medium animate-in fade-in">
+                <span>⚠️ Mất kết nối với máy chủ Socket. Tin nhắn mới sẽ không được hiển thị theo thời gian thực. Đang thử kết nối lại...</span>
+              </div>
+            )}
 
             {/* Chat Area */}
             <ScrollArea className="flex-1 p-6 bg-[url('/chat-pattern.png')] bg-repeat bg-[length:200px]">
@@ -348,12 +358,13 @@ export default function AdminChatPage() {
                     value={inputValue}
                     onChange={handleInputChange}
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                    placeholder="Nhập tin nhắn..."
-                    className="pr-12 h-10"
+                    placeholder={isConnected ? "Nhập tin nhắn..." : "Mất kết nối..."}
+                    disabled={!isConnected}
+                    className="pr-12 h-10 disabled:opacity-50"
                   />
                   <Button
                     onClick={handleSend}
-                    disabled={!inputValue.trim()}
+                    disabled={!inputValue.trim() || !isConnected}
                     size="icon"
                     className="absolute right-1 top-1 h-8 w-8 disabled:opacity-50"
                   >

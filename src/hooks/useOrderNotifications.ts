@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 
 export function useOrderNotifications() {
-  const socket = useSocket();
+  const { socket } = useSocket();
   const utils = trpc.useUtils();
 
   useEffect(() => {
