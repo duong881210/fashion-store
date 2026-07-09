@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default async function CreateProductPage() {
   const caller = appRouter.createCaller(await createTRPCContext());
-  const categories = await caller.category.getAll().catch(() => []);
+  const categories = await caller.category.getAll({ includeUnpublished: true }).catch(() => []);
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">

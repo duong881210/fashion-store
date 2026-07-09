@@ -24,7 +24,7 @@ export default async function AdminProductsPage(props: { searchParams: Promise<{
     status: status as any
   }).catch(() => ({ products: [], total: 0, page: 1, totalPages: 0 }));
 
-  const categories = await caller.category.getAll().catch(() => []);
+  const categories = await caller.category.getAll({ includeUnpublished: true }).catch(() => []);
 
   return (
     <div className="p-6 space-y-6">

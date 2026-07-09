@@ -21,7 +21,7 @@ export default async function EditProductPage(props: { params: Promise<{ id: str
     notFound();
   }
 
-  const categories = await caller.category.getAll().catch(() => []);
+  const categories = await caller.category.getAll({ includeUnpublished: true }).catch(() => []);
 
   // Pass JSON serializable data
   const initialData = JSON.parse(JSON.stringify(product));

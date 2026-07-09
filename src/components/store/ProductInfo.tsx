@@ -56,6 +56,11 @@ export function ProductInfo({ product }: ProductInfoProps) {
   const activeSizeData = activeVariant?.sizes?.find(s => s.size === selectedSize);
   const maxStock = activeSizeData ? activeSizeData.stock : 0;
   
+  // Find total stock across all variants/sizes
+  const totalStock = product.variants?.reduce((sum, v) =>
+    sum + v.sizes.reduce((s, size) => s + size.stock, 0), 0) || 0;
+  const isProductOutOfStock = totalStock < 1;
+
   const isOutOfStock = maxStock < 1;
   const isLowStock = maxStock > 0 && maxStock < 5;
 
@@ -67,6 +72,10 @@ export function ProductInfo({ product }: ProductInfoProps) {
   const handleAddToCart = () => {
     if (!session) {
       setIsAuthModalOpen(true);
+      return;
+    }
+    if (isProductOutOfStock) {
+      toast.error("Sản phẩm đã hết hàng");
       return;
     }
     if (!selectedSize) {
@@ -100,6 +109,10 @@ export function ProductInfo({ product }: ProductInfoProps) {
   const handleBuyNow = () => {
     if (!session) {
       setIsAuthModalOpen(true);
+      return;
+    }
+    if (isProductOutOfStock) {
+      toast.error("Sản phẩm đã hết hàng");
       return;
     }
     handleAddToCart();
@@ -141,8 +154,12 @@ export function ProductInfo({ product }: ProductInfoProps) {
             {product.reviewCount} đánh giá
           </a>
         </div>
-        <div className="text-sm font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-          Còn hàng
+        <div className={`text-sm font-medium px-2 py-0.5 rounded-full ${
+          isProductOutOfStock 
+            ? "text-red-600 bg-red-50" 
+            : "text-emerald-600 bg-emerald-50"
+        }`}>
+          {isProductOutOfStock ? "Hết hàng" : "Còn hàng"}
         </div>
       </div>
 
@@ -160,6 +177,12 @@ export function ProductInfo({ product }: ProductInfoProps) {
       </div>
 
       <div className="w-full h-px bg-slate-100 mb-8" />
+
+      {isProductOutOfStock && (
+        <div className="bg-red-50 text-red-600 border border-red-200 text-sm px-4 py-3 rounded-lg font-medium mb-6">
+          ⚠️ Sản phẩm hiện tại đã hết hàng ở tất cả các kích cỡ và màu sắc.
+        </div>
+      )}
 
       {/* Color Selector */}
       <div className="mb-6">
@@ -303,18 +326,18 @@ export function ProductInfo({ product }: ProductInfoProps) {
           variant="outline" 
           className="h-12 flex-1 rounded-lg border-2" 
           onClick={handleAddToCart}
-          disabled={isOutOfStock || !selectedSize}
+          disabled={isProductOutOfStock || isOutOfStock || !selectedSize}
         >
-          {isOutOfStock && selectedSize ? "Hết hàng" : "Thêm vào giỏ"}
+          {isProductOutOfStock || (isOutOfStock && selectedSize) ? "Hết hàng" : "Thêm vào giỏ"}
         </Button>
 
         <Button 
           size="lg" 
           className="h-12 flex-[2] rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-semibold transition-all shadow-[0_4px_14px_0_rgba(234,88,12,0.39)] hover:shadow-[0_6px_20px_rgba(234,88,12,0.23)] hover:-translate-y-0.5"
           onClick={handleBuyNow}
-          disabled={isOutOfStock || !selectedSize}
+          disabled={isProductOutOfStock || isOutOfStock || !selectedSize}
         >
-          Mua ngay
+          {isProductOutOfStock ? "Hết hàng" : "Mua ngay"}
         </Button>
       </div>
 

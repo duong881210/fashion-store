@@ -26,6 +26,10 @@ export default function Navbar() {
   const { data: profile } = trpc.user.getProfile.useQuery(undefined, {
     enabled: !!session,
   });
+  const { data: wishlist = [] } = trpc.user.getWishlist.useQuery(undefined, {
+    enabled: !!session,
+  });
+  const wishlistCount = wishlist.length;
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -253,7 +257,11 @@ export default function Navbar() {
           <Button variant="ghost" size="icon" className="hidden sm:inline-flex relative" asChild>
             <Link href="/wishlist">
               <Heart className="h-5 w-5" />
-              {/* <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px]" variant="secondary">0</Badge> */}
+              {mounted && wishlistCount > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-[10px]" variant="secondary">
+                  {wishlistCount}
+                </Badge>
+              )}
             </Link>
           </Button>
 

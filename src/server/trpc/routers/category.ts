@@ -1,14 +1,19 @@
 import { router, publicProcedure, adminProcedure } from '../middleware';
 import { Category, ICategory } from '../../db/models/Category';
+import { Product } from '../../db/models/Product';
 import connectDB from '../../db';
-import { createCategorySchema, updateCategorySchema, deleteCategorySchema } from '../schemas/category.schema';
+import { createCategorySchema, updateCategorySchema, deleteCategorySchema, getAllCategoriesSchema } from '../schemas/category.schema';
 import { TRPCError } from '@trpc/server';
 
 export const categoryRouter = router({
   getAll: publicProcedure
-    .query(async () => {
+    .input(getAllCategoriesSchema.optional())
+    .query(async ({ input }) => {
       await connectDB();
-      const categories = await Category.find().sort({ order: 1 }).lean<ICategory[]>();
+      const includeUnpublished = input?.includeUnpublished ?? false;
+      const query = includeUnpublished ? {} : { isActive: { $ne: false } };
+
+      const categories = await Category.find(query).sort({ order: 1 }).lean<ICategory[]>();
       return categories.map(c => ({
         ...c,
         _id: c._id?.toString(),
@@ -83,6 +88,15 @@ export const categoryRouter = router({
       const childCount = await Category.countDocuments({ parent: input.id });
       if (childCount > 0) {
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Không thể xóa danh mục đang chứa danh mục con' });
+      }
+
+      // Check if any products are in this category
+      const productCount = await Product.countDocuments({ category: input.id });
+      if (productCount > 0) {
+        throw new TRPCError({ 
+          code: 'BAD_REQUEST', 
+          message: `Không thể xóa danh mục vì đang có ${productCount} sản phẩm trực thuộc. Vui lòng cập nhật sản phẩm sang danh mục khác trước.` 
+        });
       }
 
       await Category.findByIdAndDelete(input.id);

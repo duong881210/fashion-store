@@ -18,7 +18,7 @@ export default function Topbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { clearCart } = useCartStore();
-  
+
   const { notifications, unreadCount, markAllRead, markAsRead } = useNotificationStore();
 
   const getPageTitle = () => {
@@ -26,7 +26,27 @@ export default function Topbar() {
     const segments = pathname.split('/').filter(Boolean);
     if (segments.length > 1) {
       const segment = segments[1];
-      return segment.charAt(0).toUpperCase() + segment.slice(1);
+      const titleMap: Record<string, string> = {
+        products: 'Sản Phẩm',
+        categories: 'Danh Mục',
+        orders: 'Đơn Hàng',
+        refunds: 'Hoàn Tiền',
+        customers: 'Khách Hàng',
+        chat: 'Trò Chuyện',
+        analytics: 'Thống Kê',
+        settings: 'Cài Đặt',
+      };
+
+      let title = titleMap[segment] || segment.charAt(0).toUpperCase() + segment.slice(1);
+
+      if (segments.length > 2) {
+        if (segments[2] === 'new') {
+          title = `Thêm ${title}`;
+        } else if (segments.includes('edit')) {
+          title = `Chỉnh Sửa ${title}`;
+        }
+      }
+      return title;
     }
     return 'Quản Trị';
   };
@@ -68,8 +88,8 @@ export default function Topbar() {
                 <div className="p-4 text-center text-sm text-muted-foreground">Không có thông báo nào.</div>
               ) : (
                 notifications.map((notif) => (
-                  <DropdownMenuItem 
-                    key={notif.id} 
+                  <DropdownMenuItem
+                    key={notif.id}
                     className={`flex flex-col items-start p-4 cursor-pointer gap-1 ${notif.isRead ? 'opacity-70' : 'bg-muted/50'}`}
                     onClick={() => handleNotificationClick(notif.id, notif.link)}
                   >

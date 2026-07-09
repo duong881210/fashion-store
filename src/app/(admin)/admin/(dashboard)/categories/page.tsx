@@ -2,34 +2,34 @@
 
 import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -55,9 +55,9 @@ const initialFormState: CategoryFormState = {
 };
 
 export default function AdminCategoriesPage() {
-  const { data: categoriesData, isLoading, refetch } = trpc.category.getAll.useQuery();
+  const { data: categoriesData, isLoading, refetch } = trpc.category.getAll.useQuery({ includeUnpublished: true });
   const categories = (categoriesData || []) as any[];
-  
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [formData, setFormData] = useState<CategoryFormState>(initialFormState);
@@ -106,7 +106,7 @@ export default function AdminCategoriesPage() {
       .replace(/([^a-z0-9\s-]|_)+/g, '')
       .trim()
       .replace(/\s+/g, '-');
-      
+
     setFormData(prev => ({ ...prev, name, slug }));
   };
 
@@ -198,9 +198,6 @@ export default function AdminCategoriesPage() {
       <Card>
         <CardHeader>
           <CardTitle>Danh sách danh mục</CardTitle>
-          <CardDescription>
-            Hiện có {categories.length} danh mục sản phẩm trên hệ thống.
-          </CardDescription>
         </CardHeader>
         <CardContent>
           {categories.length === 0 ? (
@@ -237,17 +234,17 @@ export default function AdminCategoriesPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
+                          <Button
+                            variant="outline"
+                            size="icon"
                             className="h-8 w-8 text-blue-600 hover:text-blue-700"
                             onClick={() => handleOpenEdit(category)}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
+                          <Button
+                            variant="outline"
+                            size="icon"
                             className="h-8 w-8 text-red-600 hover:text-red-700"
                             onClick={() => handleOpenDelete(category._id)}
                           >
@@ -276,28 +273,28 @@ export default function AdminCategoriesPage() {
           <form onSubmit={handleSubmit} className="space-y-4 py-2">
             <div className="space-y-2">
               <Label htmlFor="name">Tên danh mục</Label>
-              <Input 
-                id="name" 
-                value={formData.name} 
-                onChange={(e) => handleNameChange(e.target.value)} 
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleNameChange(e.target.value)}
                 placeholder="Ví dụ: Áo Thun Nam"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="slug">Slug (Đường dẫn tĩnh)</Label>
-              <Input 
-                id="slug" 
-                value={formData.slug} 
-                onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))} 
+              <Input
+                id="slug"
+                value={formData.slug}
+                onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
                 placeholder="ao-thun-nam"
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="parent">Danh mục cha (Tùy chọn)</Label>
-              <Select 
-                value={formData.parent || 'none'} 
+              <Select
+                value={formData.parent || 'none'}
                 onValueChange={(val) => setFormData(prev => ({ ...prev, parent: val === 'none' ? null : val }))}
               >
                 <SelectTrigger id="parent">
@@ -314,9 +311,9 @@ export default function AdminCategoriesPage() {
 
             <div className="space-y-2">
               <Label htmlFor="description">Mô tả (Không bắt buộc)</Label>
-              <Textarea 
-                id="description" 
-                value={formData.description} 
+              <Textarea
+                id="description"
+                value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Nhập mô tả cho nhóm danh mục này..."
                 className="resize-none"
@@ -326,18 +323,18 @@ export default function AdminCategoriesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="order">Thứ tự hiển thị</Label>
-                <Input 
-                  id="order" 
+                <Input
+                  id="order"
                   type="number"
-                  value={formData.order} 
+                  value={formData.order}
                   onChange={(e) => setFormData(prev => ({ ...prev, order: Number(e.target.value) }))}
                   placeholder="0"
                 />
               </div>
               <div className="flex items-center justify-between self-end pb-3">
                 <Label htmlFor="isActive" className="cursor-pointer">Kích hoạt</Label>
-                <Switch 
-                  id="isActive" 
+                <Switch
+                  id="isActive"
                   checked={formData.isActive}
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
                 />
@@ -348,8 +345,8 @@ export default function AdminCategoriesPage() {
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Hủy
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="bg-slate-900 hover:bg-slate-800 text-white"
                 disabled={createMutation.isPending || updateMutation.isPending}
               >
@@ -366,7 +363,7 @@ export default function AdminCategoriesPage() {
           <DialogHeader>
             <DialogTitle>Xác Nhận Xóa Danh Mục</DialogTitle>
             <DialogDescription>
-              Hành động này không thể hoàn tác. Danh mục sẽ bị xóa vĩnh viễn khỏi cơ sở dữ liệu. 
+              Hành động này không thể hoàn tác. Danh mục sẽ bị xóa vĩnh viễn khỏi cơ sở dữ liệu.
               Lưu ý: Không thể xóa nếu danh mục này đang chứa các danh mục con khác.
             </DialogDescription>
           </DialogHeader>
@@ -374,8 +371,8 @@ export default function AdminCategoriesPage() {
             <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
               Hủy
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={handleDelete}
               disabled={deleteMutation.isPending}
             >
