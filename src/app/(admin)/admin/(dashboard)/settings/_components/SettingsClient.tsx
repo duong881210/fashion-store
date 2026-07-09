@@ -27,6 +27,7 @@ interface SettingsClientProps {
 export function SettingsClient({ initialSettings, initialCoupons }: SettingsClientProps) {
   const [activeTab, setActiveTab] = useState('store');
   const [formData, setFormData] = useState(initialSettings);
+  const [savedSettings, setSavedSettings] = useState(initialSettings);
   const [isDirty, setIsDirty] = useState(false);
 
   // Coupon states
@@ -37,14 +38,16 @@ export function SettingsClient({ initialSettings, initialCoupons }: SettingsClie
 
   // Check if form is dirty
   useEffect(() => {
-    setIsDirty(JSON.stringify(formData) !== JSON.stringify(initialSettings));
-  }, [formData, initialSettings]);
+    setIsDirty(JSON.stringify(formData) !== JSON.stringify(savedSettings));
+  }, [formData, savedSettings]);
 
   const updateMutation = trpc.settings.updateSettings.useMutation({
     onSuccess: (data) => {
       toast.success('Cập nhật cài đặt thành công');
+      const sanitized = JSON.parse(JSON.stringify(data));
+      setSavedSettings(sanitized);
+      setFormData(sanitized);
       setIsDirty(false);
-      // In a real app we'd update initialSettings context or refresh
     },
     onError: (err) => {
       toast.error(err.message || 'Lỗi khi cập nhật cài đặt');
@@ -549,14 +552,24 @@ export function SettingsClient({ initialSettings, initialCoupons }: SettingsClie
 
       {/* Floating Save Bar */}
       {isDirty && (
-        <div className="fixed bottom-0 left-0 lg:left-64 right-0 p-4 bg-card border-t shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-50 flex justify-between items-center animate-in slide-in-from-bottom-5">
+        <div className="fixed bottom-0 left-0 lg:left-64 right-0 p-4 bg-amber-50 border-t border-amber-200 shadow-[0_-10px_20px_rgba(245,158,11,0.08)] z-50 flex justify-between items-center animate-in slide-in-from-bottom-5">
           <div className="flex items-center gap-2 text-sm">
-            <Badge variant="destructive" className="animate-pulse">Chưa lưu</Badge>
-            <span className="text-muted-foreground hidden sm:inline">Bạn có thay đổi chưa được lưu.</span>
+            <Badge className="animate-pulse bg-amber-600 hover:bg-amber-600 text-white border-none">Chưa lưu</Badge>
+            <span className="text-amber-800 font-medium hidden sm:inline">Bạn có thay đổi chưa được lưu.</span>
           </div>
           <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => { setFormData(initialSettings); setIsDirty(false); }}>Hủy bỏ</Button>
-            <Button onClick={handleSave} disabled={updateMutation.isPending}>
+            <Button 
+              variant="ghost" 
+              className="text-amber-700 hover:text-amber-900 hover:bg-amber-100/50" 
+              onClick={() => { setFormData(savedSettings); setIsDirty(false); }}
+            >
+              Hủy bỏ
+            </Button>
+            <Button 
+              className="bg-amber-600 text-white hover:bg-amber-700 border-none" 
+              onClick={handleSave} 
+              disabled={updateMutation.isPending}
+            >
               {updateMutation.isPending ? 'Đang lưu...' : <><Save className="w-4 h-4 mr-2" /> Lưu thay đổi</>}
             </Button>
           </div>

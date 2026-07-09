@@ -10,6 +10,9 @@ import { ClientNotificationListener } from '@/components/store/ClientNotificatio
 import { ChatWidget } from '@/components/store/ChatWidget';
 import { Suspense } from 'react';
 
+import connectDB from '@/server/db';
+import { Settings } from '@/server/db/models/Settings';
+
 const playfairDisplay = Playfair_Display({
   subsets: ['latin'],
   variable: '--font-display',
@@ -20,10 +23,33 @@ const dmSans = DM_Sans({
   variable: '--font-body',
 });
 
-export const metadata: Metadata = {
-  title: 'Fashion Store',
-  description: 'Your one-stop shop for the latest fashion trends.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    await connectDB();
+    const settings = await Settings.findOne().lean();
+    const title = settings?.storeInfo?.name || 'Fashion Store';
+    const description = settings?.storeInfo?.description || 'Your one-stop shop for the latest fashion trends.';
+    const logoUrl = settings?.storeInfo?.logo || '/favicon.ico';
+
+    return {
+      title,
+      description,
+      icons: {
+        icon: logoUrl,
+        shortcut: logoUrl,
+        apple: logoUrl,
+      },
+    };
+  } catch (error) {
+    return {
+      title: 'Fashion Store',
+      description: 'Your one-stop shop for the latest fashion trends.',
+      icons: {
+        icon: '/favicon.ico',
+      },
+    };
+  }
+}
 
 async function SessionWrapper({ children }: { children: React.ReactNode }) {
   const session = await auth();
