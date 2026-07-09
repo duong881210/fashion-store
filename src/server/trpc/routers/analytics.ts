@@ -100,7 +100,8 @@ export const analyticsRouter = router({
       let outOfStock = 0;
 
       products.forEach((prod: any) => {
-        const totalStock = prod.variants.reduce((sum: number, v: any) => sum + v.stock, 0);
+        const totalStock = prod.variants.reduce((sum: number, v: any) => 
+          sum + (v.sizes?.reduce((s: number, sz: any) => s + sz.stock, 0) || 0), 0);
         
         if (totalStock === 0) outOfStock++;
         else if (totalStock < 10) lowStock++;

@@ -12,7 +12,7 @@ import { formatCurrency } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Copy, MapPin, Package, CreditCard, Clock } from "lucide-react";
@@ -44,6 +44,13 @@ const PAYMENT_STATUS_MAP: Record<string, { label: string, variant: string }> = {
 export function OrderDetailSheet({ order, isOpen, onClose, onUpdate }: OrderDetailSheetProps) {
   const [status, setStatus] = useState<string>(order?.status || 'pending');
   const [paymentStatus, setPaymentStatus] = useState<string>(order?.paymentStatus || 'unpaid');
+
+  useEffect(() => {
+    if (order) {
+      setStatus(order.status);
+      setPaymentStatus(order.paymentStatus);
+    }
+  }, [order, isOpen]);
 
   const updateMutation = trpc.order.updateStatus.useMutation({
     onSuccess: () => {

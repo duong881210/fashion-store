@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Loader2, MapPin, CreditCard, Banknote, CheckCircle2, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import CouponSelector from "@/components/store/CouponSelector";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
@@ -33,6 +34,21 @@ export default function CheckoutClient({ profile }: { profile: any }) {
     district: "",
     province: "",
   });
+
+  const [provinces, setProvinces] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('https://provinces.open-api.vn/api/?depth=3')
+      .then(r => r.json())
+      .then(data => setProvinces(data))
+      .catch(err => console.error("Failed to load provinces", err));
+  }, []);
+
+  const selectedProvince = provinces.find(p => p.name === newAddress.province);
+  const districts = selectedProvince?.districts || [];
+  
+  const selectedDistrict = districts.find((d: any) => d.name === newAddress.district);
+  const wards = selectedDistrict?.wards || [];
 
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "vnpay">("cod");
 
@@ -215,15 +231,53 @@ export default function CheckoutClient({ profile }: { profile: any }) {
                     </div>
                     <div className="space-y-2">
                       <Label>Tỉnh / Thành phố</Label>
-                      <Input value={newAddress.province} onChange={e => setNewAddress({...newAddress, province: e.target.value})} placeholder="Hồ Chí Minh" />
+                      <Select 
+                        value={newAddress.province} 
+                        onValueChange={(val) => setNewAddress({ ...newAddress, province: val, district: "", ward: "" })}
+                      >
+                        <SelectTrigger className="w-full bg-white">
+                          <SelectValue placeholder="Chọn Tỉnh / Thành phố" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {provinces.map(p => (
+                            <SelectItem key={p.code} value={p.name}>{p.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label>Quận / Huyện</Label>
-                      <Input value={newAddress.district} onChange={e => setNewAddress({...newAddress, district: e.target.value})} placeholder="Quận 1" />
+                      <Select 
+                        disabled={!newAddress.province}
+                        value={newAddress.district} 
+                        onValueChange={(val) => setNewAddress({ ...newAddress, district: val, ward: "" })}
+                      >
+                        <SelectTrigger className="w-full bg-white">
+                          <SelectValue placeholder="Chọn Quận / Huyện" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {districts.map((d: any) => (
+                            <SelectItem key={d.code} value={d.name}>{d.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label>Phường / Xã</Label>
-                      <Input value={newAddress.ward} onChange={e => setNewAddress({...newAddress, ward: e.target.value})} placeholder="Phường Bến Nghé" />
+                      <Select 
+                        disabled={!newAddress.district}
+                        value={newAddress.ward} 
+                        onValueChange={(val) => setNewAddress({ ...newAddress, ward: val })}
+                      >
+                        <SelectTrigger className="w-full bg-white">
+                          <SelectValue placeholder="Chọn Phường / Xã" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {wards.map((w: any) => (
+                            <SelectItem key={w.code} value={w.name}>{w.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 )}

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, Star, ShoppingCart, Eye } from "lucide-react";
+import { Heart, Star, ShoppingCart, Eye, HeartCrack } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
@@ -37,14 +37,31 @@ export function ProductCard({ product }: ProductCardProps) {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
   const { addItem } = useCartStore();
-  const [isWishlisted, setIsWishlisted] = useState(false); // Default local state, actual feature requires auth
   const { data: session } = useSession();
+  const utils = trpc.useUtils();
+
+  const { data: wishlist } = trpc.user.getWishlist.useQuery(undefined, {
+    enabled: !!session,
+  });
+
+  const isWishlisted = wishlist ? wishlist.some((item: any) => item._id === product._id) : false;
+
   const [imgSrc, setImgSrc] = useState(product.images[0] || "/placeholder.svg");
   const [imgSrc2, setImgSrc2] = useState(product.images[1] || null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const toggleWishlist = trpc.user?.toggleWishlist?.useMutation({
-    onSuccess: () => setIsWishlisted(!isWishlisted)
+    onSuccess: () => {
+      utils.user.getWishlist.invalidate();
+      if (isWishlisted) {
+        toast.success("Đã xóa khỏi danh sách yêu thích");
+      } else {
+        toast.success("Đã thêm vào danh sách yêu thích");
+      }
+    },
+    onError: (err) => {
+      toast.error(err.message || "Lỗi thao tác");
+    }
   });
 
   const { mutate: addToBackendCart } = trpc.cart.addItem.useMutation({
@@ -56,10 +73,12 @@ export function ProductCard({ product }: ProductCardProps) {
   const handleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!session) {
+      setIsAuthModalOpen(true);
+      return;
+    }
     if (toggleWishlist) {
       toggleWishlist.mutate({ productId: product._id });
-    } else {
-      setIsWishlisted(!isWishlisted);
     }
   };
 
@@ -189,8 +208,13 @@ export function ProductCard({ product }: ProductCardProps) {
             variant="secondary"
             className={`rounded-full shadow-md bg-white hover:bg-slate-50 transition-colors ${isWishlisted ? 'text-red-500' : 'text-slate-600'}`}
             onClick={handleWishlist}
+            title={isWishlisted ? "Xóa khỏi danh sách yêu thích" : "Thêm vào danh sách yêu thích"}
           >
-            <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
+            {isWishlisted ? (
+              <HeartCrack className="w-4 h-4 fill-current" />
+            ) : (
+              <Heart className="w-4 h-4" />
+            )}
           </Button>
         </div>
 
