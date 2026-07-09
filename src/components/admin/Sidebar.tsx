@@ -11,7 +11,8 @@ import {
   BarChart3, 
   Settings,
   ChevronLeft,
-  RotateCcw
+  RotateCcw,
+  Folder
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ import { useNotificationStore } from '@/stores/useNotificationStore';
 const navItems = [
   { name: 'Bảng Điều Khiển', href: '/admin', icon: LayoutDashboard },
   { name: 'Sản Phẩm', href: '/admin/products', icon: Package },
+  { name: 'Danh Mục', href: '/admin/categories', icon: Folder },
   { name: 'Đơn Hàng', href: '/admin/orders', icon: ShoppingCart },
   { name: 'Hoàn Tiền', href: '/admin/refunds', icon: RotateCcw },
   { name: 'Khách Hàng', href: '/admin/customers', icon: Users },
