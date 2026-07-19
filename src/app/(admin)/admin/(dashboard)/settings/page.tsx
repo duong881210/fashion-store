@@ -2,12 +2,14 @@ import { Metadata } from 'next';
 import { appRouter } from '@/server/trpc';
 import { createTRPCContext } from '@/server/trpc/context';
 import { SettingsClient } from './_components/SettingsClient';
+import { connection } from 'next/server';
 
 export const metadata: Metadata = {
   title: 'Quản Trị - Cài Đặt',
 };
 
 export default async function AdminSettingsPage() {
+  await connection();
   const caller = appRouter.createCaller(await createTRPCContext());
   
   const [settings, coupons] = await Promise.all([

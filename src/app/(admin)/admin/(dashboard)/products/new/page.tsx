@@ -2,12 +2,14 @@ import { Metadata } from 'next';
 import { ProductForm } from '../_components/ProductForm';
 import { appRouter } from '@/server/trpc';
 import { createTRPCContext } from '@/server/trpc/context';
+import { connection } from 'next/server';
 
 export const metadata: Metadata = {
   title: 'Quản Trị - Tạo Sản Phẩm',
 };
 
 export default async function CreateProductPage() {
+  await connection();
   const caller = appRouter.createCaller(await createTRPCContext());
   const categories = await caller.category.getAll({ includeUnpublished: true }).catch(() => []);
 

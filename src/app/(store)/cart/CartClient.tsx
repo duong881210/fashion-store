@@ -123,76 +123,75 @@ export default function CartClient({ isLoggedIn }: { isLoggedIn: boolean }) {
 
         <div className="space-y-6">
           {items.map((item) => (
-            <div key={`${item.product}-${item.color}-${item.size}`} className="flex flex-col sm:flex-row gap-4 py-4 border-b group">
-              <div className="relative w-24 h-32 sm:w-32 sm:h-40 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
-                <Image
-                  src={item.image || '/placeholder.png'}
-                  alt={item.name}
-                  fill
-                  className="object-cover"
-                />
-                {/* Out of stock warning placeholder */}
-                {/* <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
-                  <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">Hết hàng</span>
-                </div> */}
-              </div>
-              
-              <div className="flex-1 flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-start mb-1">
-                    <Link href={`/products/${item.product}`} className="font-semibold text-slate-900 hover:text-slate-600 transition-colors text-lg pr-4">
-                      {item.name}
-                    </Link>
-                    <button 
-                      onClick={() => handleRemoveItem(item.product, item.color, item.size)}
-                      className="text-slate-400 hover:text-red-500 transition-colors hidden sm:block p-2 -mr-2"
-                      title="Xóa khỏi giỏ hàng"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  </div>
-                  <div className="text-sm text-slate-500 space-y-1 mb-4">
-                    <p>Màu sắc: <span className="font-medium text-slate-900">{item.color}</span></p>
-                    <p>Size: <span className="font-medium text-slate-900">{item.size}</span></p>
-                    <p className="font-medium text-slate-900">{formatCurrency(item.price)}</p>
-                    {item.outOfStock && (
-                      <div className="mt-2 text-xs text-red-500 font-semibold bg-red-50 p-2 rounded-lg border border-red-100 flex items-center gap-1.5 w-fit">
-                        <AlertCircle className="h-3.5 w-3.5 animate-pulse" />
-                        Không đủ số lượng trong kho
-                      </div>
-                    )}
+            <div key={`${item.product}-${item.color}-${item.size}`} className="flex flex-col md:grid md:grid-cols-12 gap-4 py-6 border-b group items-center">
+              {/* Product Info (Col span 6) */}
+              <div className="flex gap-4 col-span-12 md:col-span-6 w-full">
+                <div className="relative w-24 h-32 sm:w-32 sm:h-40 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
+                  <Image
+                    src={item.image || '/placeholder.png'}
+                    alt={item.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                
+                <div className="flex-1 flex flex-col justify-between py-1">
+                  <div>
+                    <div className="flex justify-between items-start mb-1">
+                      <Link href={`/products/${item.product}`} className="font-semibold text-slate-900 hover:text-slate-600 transition-colors text-lg pr-4">
+                        {item.name}
+                      </Link>
+                    </div>
+                    <div className="text-sm text-slate-500 space-y-1">
+                      <p>Màu sắc: <span className="font-medium text-slate-900">{item.color}</span></p>
+                      <p>Size: <span className="font-medium text-slate-900">{item.size}</span></p>
+                      <p className="font-medium text-slate-900">{formatCurrency(item.price)}</p>
+                      {item.outOfStock && (
+                        <div className="mt-2 text-xs text-red-500 font-semibold bg-red-50 p-2 rounded-lg border border-red-100 flex items-center gap-1.5 w-fit">
+                          <AlertCircle className="h-3.5 w-3.5 animate-pulse" />
+                          Không đủ số lượng trong kho
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="flex justify-between items-center mt-auto sm:mt-0">
-                  <div className="flex items-center border rounded-md bg-white">
-                    <button 
-                      className="p-2 hover:bg-slate-50 text-slate-600 transition-colors"
-                      onClick={() => item.quantity > 1 && handleUpdateQuantity(item.product, item.color, item.size, item.quantity - 1)}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </button>
-                    <span className="w-10 text-center font-medium text-sm">{item.quantity}</span>
-                    <button 
-                      className="p-2 hover:bg-slate-50 text-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      onClick={() => handleUpdateQuantity(item.product, item.color, item.size, item.quantity + 1)}
-                      disabled={item.stock !== undefined && item.quantity >= item.stock}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
-                  
-                  <div className="flex items-center gap-4">
-                    <span className="font-bold text-lg text-slate-900 hidden sm:block">
-                      {formatCurrency(item.price * item.quantity)}
-                    </span>
-                    <button 
-                      onClick={() => handleRemoveItem(item.product, item.color, item.size)}
-                      className="text-slate-400 hover:text-red-500 transition-colors sm:hidden p-2"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  </div>
+              {/* Quantity Selector (Col span 3) */}
+              <div className="col-span-12 md:col-span-3 flex items-center justify-between md:justify-center w-full mt-2 md:mt-0">
+                <span className="text-sm text-slate-500 md:hidden">Số lượng:</span>
+                <div className="flex items-center border rounded-md bg-white">
+                  <button 
+                    className="p-2 hover:bg-slate-50 text-slate-600 transition-colors"
+                    onClick={() => item.quantity > 1 && handleUpdateQuantity(item.product, item.color, item.size, item.quantity - 1)}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="w-10 text-center font-medium text-sm">{item.quantity}</span>
+                  <button 
+                    className="p-2 hover:bg-slate-50 text-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => handleUpdateQuantity(item.product, item.color, item.size, item.quantity + 1)}
+                    disabled={item.stock !== undefined && item.quantity >= item.stock}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              
+              {/* Total Price & Remove Button (Col span 3) */}
+              <div className="col-span-12 md:col-span-3 flex items-center justify-between md:justify-end gap-4 w-full mt-2 md:mt-0">
+                <span className="text-sm text-slate-500 md:hidden">Tổng cộng:</span>
+                <div className="flex items-center gap-4">
+                  <span className="font-bold text-lg text-slate-900">
+                    {formatCurrency(item.price * item.quantity)}
+                  </span>
+                  <button 
+                    onClick={() => handleRemoveItem(item.product, item.color, item.size)}
+                    className="text-slate-400 hover:text-red-500 transition-colors p-2"
+                    title="Xóa khỏi giỏ hàng"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
                 </div>
               </div>
             </div>

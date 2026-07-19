@@ -8,6 +8,7 @@ import { ArrowUpRight, ArrowDownRight, DollarSign, ShoppingBag, Users, AlertTria
 import Image from 'next/image';
 import Link from 'next/link';
 import DashboardCharts from './_components/DashboardCharts';
+import { connection } from 'next/server';
 
 export const metadata: Metadata = {
   title: 'Quản Trị - Tổng Quan',
@@ -24,6 +25,7 @@ const STATUS_MAP: Record<string, { label: string, variant: string }> = {
 };
 
 export default async function AdminDashboard() {
+  await connection();
   const caller = appRouter.createCaller(await createTRPCContext());
 
   const now = new Date();

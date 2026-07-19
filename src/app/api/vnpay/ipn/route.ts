@@ -4,6 +4,8 @@ import { Order } from '@/server/db/models/Order';
 import { VnpayLog } from '@/server/db/models/VnpayLog';
 import { verifySignature } from '@/lib/vnpay';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);

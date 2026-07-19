@@ -9,6 +9,7 @@ import { SocketProvider } from '@/components/providers/SocketProvider';
 import { ClientNotificationListener } from '@/components/store/ClientNotificationListener';
 import { ChatWidget } from '@/components/store/ChatWidget';
 import { Suspense } from 'react';
+import { connection } from 'next/server';
 
 import connectDB from '@/server/db';
 import { Settings } from '@/server/db/models/Settings';
@@ -25,6 +26,7 @@ const dmSans = DM_Sans({
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
+    await connection();
     await connectDB();
     const settings = await Settings.findOne().lean();
     const title = settings?.storeInfo?.name || 'Fashion Store';
